@@ -23,6 +23,25 @@ var TEAMS = D.teams;
 var M = D.matches;                 // [dayNumber, home, away, hs, as]
 var SETS = D.sets;
 var ORDER = D.order;
+
+/* Era-correct names. TEAMS holds one entry per lineage - the identity the
+   rating belongs to - so the Soviet Union and Russia are one row whose rating
+   runs straight through. D.lineages says which name that row was using on a
+   given day, so the table reads "Soviet Union" with the slider in 1980 and
+   "Russia" with it in 2010. Names only: no rating moves.
+   Sorting and tie-breaks deliberately keep using TEAMS, so dragging the slider
+   never reshuffles two equally-rated sides. */
+var LINEAGE = {};
+(D.lineages || []).forEach(function (l) { LINEAGE[l.team] = l.names; });
+function nameAt(t, day) {
+  var w = LINEAGE[t];
+  if (!w) return TEAMS[t];
+  for (var i = 0; i < w.length; i++) {
+    if ((w[i][0] === null || day >= w[i][0]) &&
+        (w[i][1] === null || day <= w[i][1])) return w[i][2];
+  }
+  return TEAMS[t];
+}
 var MONTHS = ["January", "February", "March", "April", "May", "June", "July",
               "August", "September", "October", "November", "December"];
 var MON3 = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep",
@@ -205,7 +224,7 @@ function refresh() {
   rows = now.order.map(function (t) {
     var wasPos = yearAgo.pos[t], wasRating = yearAgo.rating[t];
     return {
-      id: t, name: TEAMS[t], rank: now.pos[t], rating: now.rating[t],
+      id: t, name: nameAt(t, S.day), rank: now.pos[t], rating: now.rating[t],
       move: wasPos === undefined ? null : wasPos - now.pos[t],
       chg: wasRating === undefined ? null : now.rating[t] - wasRating,
       played: now.played[t] || 0, last: now.last[t],
@@ -231,7 +250,7 @@ function refresh() {
   // ---- headline cards
   var top1 = rows.length ? rows0(now, rows[0].id) : null;
   if (top1) {
-    setText("k-no1", TEAMS[top1.team]);
+    setText("k-no1", nameAt(top1.team, S.day));
     setText("k-no1-sub", top1.rating.toFixed(2) + " points" +
       (top1.since !== null
         ? " · top of the table since " + shortDate(top1.since) + " (" +
@@ -261,8 +280,8 @@ function refresh() {
   document.getElementById("k-recent").innerHTML = rec.length
     ? rec.map(function (m) {
         return "<li><span>" + shortDate(m[0]) + "</span> " +
-          esc(TEAMS[m[1]]) + " <b>" + m[3] + "–" + m[4] + "</b> " +
-          esc(TEAMS[m[2]]) + "</li>";
+          esc(nameAt(m[1], m[0])) + " <b>" + m[3] + "–" + m[4] + "</b> " +
+          esc(nameAt(m[2], m[0])) + "</li>";
       }).join("")
     : "<li><span>none yet</span></li>";
 
@@ -584,7 +603,8 @@ window.__TM = {
   tableAt: function (mode, lions, iso) {
     var t = tableAt(setKey(mode, lions), isoToDay(iso));
     return t.order.map(function (id, i) {
-      return [i + 1, TEAMS[id], Math.round(t.rating[id] * 10000) / 10000];
+      return [i + 1, nameAt(id, isoToDay(iso)),
+              Math.round(t.rating[id] * 10000) / 10000];
     });
   },
   state: function () { return S; },

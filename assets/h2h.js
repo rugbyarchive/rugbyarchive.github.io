@@ -24,6 +24,18 @@ var ROWS = D.rows, LK = D.lookups, TEAMS = LK.teams, N = ROWS.length;
 var SC = D.scoring || null;
 var BREAK = D.breakdowns || {};
 
+/* TEAMS is the identity a match is RANKED under - one entry per lineage, so a
+   search for Russia finds the Soviet Union's matches. ERA is the name the side
+   actually went by on the day, which is what gets printed. */
+var ERA = LK.team_era || null;
+function homeName(r) {
+  return ERA && r[F.home_as] != null ? ERA[r[F.home_as]] : TEAMS[r[F.home]];
+}
+function awayName(r) {
+  return ERA && r[F.away_as] != null ? ERA[r[F.away_as]] : TEAMS[r[F.away]];
+}
+
+
 var MON3 = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep",
             "Oct", "Nov", "Dec"];
 // Validated with the dataviz palette checker against a #ffffff surface:
@@ -33,6 +45,25 @@ var C_A = "#2a78d6", C_B = "#e34948", C_ZERO = "#c2cad6";
 
 var teamIdx = {};
 TEAMS.forEach(function (t, i) { teamIdx[t] = i; });
+
+/* A team index from a name that may be EITHER the ranked identity ("Russia")
+   or a name that side used earlier ("Soviet Union"). Deep links from the
+   Rankings Time Machine carry the ERA name, and a plain lookup returns
+   undefined for those - which every caller here reads as "no filter", so the
+   page showed the whole archive while its heading claimed one team. */
+function teamIndexOf(name) {
+  var i = teamIdx[name];
+  if (i !== undefined) return i;
+  if (!ERA) return -1;
+  var e = ERA.indexOf(name);
+  if (e < 0) return -1;
+  for (var k = 0; k < ROWS.length; k++) {
+    if (ROWS[k][F.home_as] === e) return ROWS[k][F.home];
+    if (ROWS[k][F.away_as] === e) return ROWS[k][F.away];
+  }
+  return -1;
+}
+
 
 var S = { a: "", b: "", basis: "played", era: null, find: "" };
 
@@ -55,9 +86,34 @@ function valuesFor(year) {
   for (var i = 0; i < rows.length; i++) if (year >= rows[i][0]) v = rows[i].slice(1);
   return v;
 }
+/* How many numbers describe ONE side's scoring. Read from the data, never
+   assumed - the goal-from-a-mark column was added later, and a hard-coded 5
+   here would have silently sliced the away side's figures into the home
+   side's. */
+var HALF = SC && SC.breakdown_order ? SC.breakdown_order.length / 2 : 5;
+
 function pointsFrom(counts, v) {
-  return counts[0] * v[0] + counts[1] * v[1] + counts[2] * v[2] +
-         counts[3] * v[3] + counts[4] * v[4];
+  var total = 0, n = Math.min(counts.length, v.length);
+  for (var i = 0; i < n; i++) total += counts[i] * v[i];
+  return total;
+}
+
+/* "try 4, conversion +2, penalty 3, drop goal 3, goal from a mark 3".
+   Built from the column names in the data, so a new scoring method appears
+   here on its own. A method worth nothing in this era is left out. */
+var VALUE_WORDS = {
+  "try": "try", "conversion_bonus": "conversion +", "penalty_goal": "penalty",
+  "drop_goal": "drop goal", "goal_from_mark": "goal from a mark",
+  "penalty_try": "penalty try"
+};
+function valueWords(v) {
+  var cols = (SC && SC.columns ? SC.columns : []).slice(1), out = [];
+  for (var i = 0; i < v.length; i++) {
+    if (!v[i]) continue;
+    var w = VALUE_WORDS[cols[i]] || cols[i] || "";
+    out.push(w.slice(-1) === "+" ? w + v[i] : w + " " + v[i]);
+  }
+  return out.join(", ");
 }
 
 /* Scores for a match, honouring the current basis.
@@ -70,7 +126,7 @@ function scores(i) {
   var b = BREAK[i];
   if (!b) return [r[F.home_score], r[F.away_score], false];
   var v = valuesFor(S.era);
-  return [pointsFrom(b.slice(0, 5), v), pointsFrom(b.slice(5), v), true];
+  return [pointsFrom(b.slice(0, HALF), v), pointsFrom(b.slice(HALF), v), true];
 }
 
 function meetings(ai, bi) {
@@ -258,10 +314,16 @@ function drawChart(st, aName, bName) {
     cursor.setAttribute("cy", y(p.v));
     cursor.removeAttribute("hidden");
     tip.hidden = false;
+    // p.s.mine / p.s.theirs are from team A's point of view, so when A was
+    // AWAY they must be swapped back before being printed home-first - the
+    // tooltip used to contradict the meetings table below it.
+    var aAtHome = r[F.home] === teamIndexOf(aName);
+    var hSc = aAtHome ? p.s.mine : p.s.theirs;
+    var aSc = aAtHome ? p.s.theirs : p.s.mine;
     tip.innerHTML = "<b>" + fmtDate(r[F.date]) + "</b><br>" +
-      esc(TEAMS[r[F.home]]) + " " + p.s.mine + "–" + p.s.theirs + " " +
-      esc(TEAMS[r[F.away]]) +
-      (r[F.home] === teamIdx[aName] ? "" : " (" + esc(aName) + " away)") +
+      esc(homeName(r)) + " " + hSc + "–" + aSc + " " +
+      esc(awayName(r)) +
+      (aAtHome ? "" : " (" + esc(aName) + " away)") +
       "<br><span class='muted'>" +
       (p.v === 0 ? "level" : (p.v > 0 ? esc(aName) : esc(bName)) + " +" +
        Math.abs(p.v)) + " after this match</span>";
@@ -285,12 +347,12 @@ function scoreline(i, st) {
   var r = ROWS[i], s = null;
   for (var k = 0; k < st.seq.length; k++) if (st.seq[k].i === i) s = st.seq[k];
   var sc = scores(i);
-  return TEAMS[r[F.home]] + " " + sc[0] + "–" + sc[1] + " " + TEAMS[r[F.away]];
+  return homeName(r) + " " + sc[0] + "–" + sc[1] + " " + awayName(r);
 }
 
 function renderRivalry() {
   var t0 = performance.now();
-  var ai = teamIdx[S.a], bi = teamIdx[S.b];
+  var ai = teamIndexOf(S.a), bi = teamIndexOf(S.b);
   var list = meetings(ai, bi);
   var st = analyse(list, ai);
 
@@ -449,10 +511,10 @@ function paintMeetings() {
     var comp = r[F.competition] === null ? "—" : LK.competition[r[F.competition]];
     out += '<div class="trow" style="grid-template-columns:' + MGRID + '">' +
       '<div class="date">' + fmtDate(r[F.date]) + "</div>" +
-      "<div>" + esc(TEAMS[r[F.home]]) + "</div>" +
+      "<div>" + esc(homeName(r)) + "</div>" +
       '<div class="score' + (s.restated ? " restated" : "") + '">' +
         sc[0] + "–" + sc[1] + "</div>" +
-      "<div>" + esc(TEAMS[r[F.away]]) + "</div>" +
+      "<div>" + esc(awayName(r)) + "</div>" +
       '<div><span class="res ' + s.res + '">' + s.res + "</span></div>" +
       '<div class="num">' + Math.abs(s.diff) + "</div>" +
       '<div title="' + esc(comp) + '">' + esc(comp) +
@@ -471,7 +533,7 @@ function paintMeetings() {
 var oppRows = [];
 function renderAllOpponents() {
   var t0 = performance.now();
-  var ai = teamIdx[S.a];
+  var ai = teamIndexOf(S.a);
   var by = {};
   for (var i = 0; i < N; i++) {
     var r = ROWS[i], h = r[F.home], a = r[F.away];
@@ -541,8 +603,7 @@ function applyBasisNote() {
   var v = valuesFor(S.era);
   note.hidden = false;
   note.innerHTML = "Scores are restated under the <b>" + S.era +
-    "</b> scoring system (try " + v[0] + ", conversion +" + v[1] +
-    ", penalty " + v[2] + ", drop goal " + v[3] + ", penalty try " + v[4] +
+    "</b> scoring system (" + valueWords(v) +
     "), taken from your own <b>Scoring Systems</b> sheet. Only the <b>" +
     num(SC.coverage) + "</b> matches (" +
     (100 * SC.coverage / SC.total_matches).toFixed(1) +
@@ -663,7 +724,7 @@ function init() {
                                                        { passive: true });
   window.addEventListener("resize", function () {
     if (!document.getElementById("rivalry").hidden && S.a && S.b) {
-      drawChart(analyse(meetings(teamIdx[S.a], teamIdx[S.b]), teamIdx[S.a]),
+      drawChart(analyse(meetings(teamIndexOf(S.a), teamIndexOf(S.b)), teamIndexOf(S.a)),
                 S.a, S.b);
     }
   });
@@ -697,7 +758,7 @@ function exportCSV() {
               "Away rank before", "Excel row"].map(q).join(","));
     meetList.forEach(function (i, k) {
       var r = ROWS[i], s = meetSt.seq[k], sc = scores(i);
-      out.push([r[F.date], TEAMS[r[F.home]], sc[0], sc[1], TEAMS[r[F.away]],
+      out.push([r[F.date], homeName(r), sc[0], sc[1], awayName(r),
         s.res, Math.abs(s.diff), s.restated ? "yes" : "no",
         r[F.competition] === null ? "" : LK.competition[r[F.competition]],
         r[F.stadium] === null ? "" : LK.stadium[r[F.stadium]],
@@ -736,8 +797,8 @@ window.__H2H = {
   },
   stats: function () {
     if (!(S.a && S.b)) return null;
-    var ai = teamIdx[S.a];
-    var st = analyse(meetings(ai, teamIdx[S.b]), ai);
+    var ai = teamIndexOf(S.a);
+    var st = analyse(meetings(ai, teamIndexOf(S.b)), ai);
     return { played: st.played, won: st.won, drawn: st.drawn, lost: st.lost,
              pf: st.pf, pa: st.pa, restated: st.restated,
              big: st.big ? st.big.d : null,

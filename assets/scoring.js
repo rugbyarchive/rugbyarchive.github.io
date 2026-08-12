@@ -23,6 +23,7 @@ if (!D || window.__dataFailed) {
   return;
 }
 var SC = D.scoring, BREAK = D.breakdowns || {};
+
 if (!SC || !Object.keys(BREAK).length) {
   document.getElementById("loading").hidden = true;
   document.getElementById("nodata").hidden = false;
@@ -32,6 +33,17 @@ if (!SC || !Object.keys(BREAK).length) {
 var F = {};
 D.fields.forEach(function (n, i) { F[n] = i; });
 var ROWS = D.rows, LK = D.lookups, TEAMS = LK.teams;
+
+/* TEAMS is the identity a match is RANKED under - one entry per lineage, so a
+   search for Russia finds the Soviet Union's matches. ERA is the name the side
+   actually went by on the day, which is what gets printed. */
+var ERA = LK.team_era || null;
+function homeName(r) {
+  return ERA && r[F.home_as] != null ? ERA[r[F.home_as]] : TEAMS[r[F.home]];
+}
+function awayName(r) {
+  return ERA && r[F.away_as] != null ? ERA[r[F.away_as]] : TEAMS[r[F.away]];
+}
 var MON3 = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep",
             "Oct", "Nov", "Dec"];
 
@@ -54,10 +66,63 @@ function valuesFor(year) {
   }
   return v;
 }
-function pointsFrom(c, v) {
-  return c[0] * v[0] + c[1] * v[1] + c[2] * v[2] + c[3] * v[3] + c[4] * v[4];
+/* How many numbers describe ONE side's scoring, and which of them counted as
+   a "goal" before rugby kept points. Both come from the data rather than being
+   hard-coded, so adding a scoring method (as goal-from-a-mark was) cannot
+   silently slice the away side's figures into the home side's. */
+var BO = (SC && SC.breakdown_order) || [];
+var HALF = BO.length ? BO.length / 2 : 5;
+var GOAL_IX = [];
+for (var _g = 0; _g < HALF; _g++) {
+  if (BO[_g] === "home_conv" || BO[_g] === "home_drop_goals" ||
+      BO[_g] === "home_marks") GOAL_IX.push(_g);
 }
-function goalsFrom(c) { return c[1] + c[3]; }
+if (!GOAL_IX.length) GOAL_IX = [1, 3];
+
+function pointsFrom(c, v) {
+  var total = 0, n = Math.min(c.length, v.length);
+  for (var i = 0; i < n; i++) total += c[i] * v[i];
+  return total;
+}
+/* A team index from a name that may be EITHER the ranked identity ("Russia")
+   or a name that side used earlier ("Soviet Union"). A deep link carrying the
+   era name used to return -1, which every caller reads as "no filter" - so the
+   page showed the whole archive while claiming to show one team. */
+function teamIndexOf(name) {
+  var i = TEAMS.indexOf(name);
+  if (i >= 0 || !ERA) return i;
+  var e = ERA.indexOf(name);
+  if (e < 0) return -1;
+  for (var k = 0; k < ROWS.length; k++) {
+    if (ROWS[k][F.home_as] === e) return ROWS[k][F.home];
+    if (ROWS[k][F.away_as] === e) return ROWS[k][F.away];
+  }
+  return -1;
+}
+
+function goalsFrom(c) {
+  var t = 0;
+  for (var i = 0; i < GOAL_IX.length; i++) t += c[GOAL_IX[i]] || 0;
+  return t;
+}
+
+/* "try 5 · conversion +2 · penalty 3 · drop goal 3 · penalty try 7", built
+   from the column names in the data so a scoring method added to the workbook
+   names itself. A method worth nothing in this era is left out. */
+var VALUE_WORDS = {
+  "try": "try", conversion_bonus: "conversion +", penalty_goal: "penalty",
+  drop_goal: "drop goal", goal_from_mark: "goal from a mark",
+  penalty_try: "penalty try"
+};
+function valueWords(v) {
+  var cols = (SC.columns || []).slice(1), out = [];
+  for (var i = 0; i < v.length; i++) {
+    if (!v[i]) continue;
+    var w = VALUE_WORDS[cols[i]] || cols[i] || "";
+    out.push(w.slice(-1) === "+" ? w + v[i] : w + " " + v[i]);
+  }
+  return out.join(" · ");
+}
 
 function eraLabel(fromYear) {
   var rows = SC.rows;
@@ -82,11 +147,11 @@ function eraOf(year) {
 function detail(i) {
   var r = ROWS[i], b = BREAK[i], y = +r[F.date].slice(0, 4);
   var tv = valuesFor(S.target);
-  var nh = pointsFrom(b.slice(0, 5), tv), na = pointsFrom(b.slice(5), tv);
+  var bh = b.slice(0, HALF), ba = b.slice(HALF);
+  var nh = pointsFrom(bh, tv), na = pointsFrom(ba, tv);
   var goals = y <= SC.goals_era_ends;
-  var eh = goals ? goalsFrom(b.slice(0, 5))
-                 : pointsFrom(b.slice(0, 5), valuesFor(y));
-  var ea = goals ? goalsFrom(b.slice(5)) : pointsFrom(b.slice(5), valuesFor(y));
+  var eh = goals ? goalsFrom(bh) : pointsFrom(bh, valuesFor(y));
+  var ea = goals ? goalsFrom(ba) : pointsFrom(ba, valuesFor(y));
   var hs = r[F.home_score], as = r[F.away_score];
   var oldSign = hs === as ? 0 : (hs > as ? 1 : -1);
   var newSign = nh === na ? 0 : (nh > na ? 1 : -1);
@@ -103,19 +168,30 @@ var ALL = Object.keys(BREAK).map(Number).sort(function (a, b) { return a - b; })
 var view = [];
 
 // ------------------------------------------------------------------ render
+/* The breakdown column heading names its own figures, in the order the data
+   actually supplies them, so it can never drift out of step with the values
+   underneath it. */
+var ABBREV = {
+  home_tries: "T", home_conv: "C", home_pens: "P", home_drop_goals: "DG",
+  home_marks: "M", home_pen_tries: "PT"
+};
+var BD_HEAD = BO.slice(0, HALF).map(function (n) {
+  return ABBREV[n] || n.replace(/^home_/, "");
+}).join("·") || "T·C·P·DG·PT";
+
 var COLS = [
   { l: "Date", c: "date" }, { l: "Home", c: "" }, { l: "As played", c: "score" },
   { l: "Away", c: "" }, { l: "Restated", c: "score" }, { l: "Swing", c: "num" },
-  { l: "Home T·C·P·DG·PT", c: "bd" }, { l: "Away T·C·P·DG·PT", c: "bd" },
+  { l: "Home " + BD_HEAD, c: "bd" }, { l: "Away " + BD_HEAD, c: "bd" },
   { l: "Era", c: "" }, { l: "Adds up?", c: "" }
 ];
-var GRID = "100px minmax(90px,1fr) 78px minmax(90px,1fr) 96px 62px 124px 124px " +
-           "minmax(94px,0.9fr) 86px";
+var GRID = "98px minmax(84px,1fr) 76px minmax(84px,1fr) 92px 58px 150px 150px " +
+           "minmax(92px,0.85fr) 82px";
 var ROW_H = 30;
 
 function build() {
   var t0 = performance.now();
-  var ti = S.team ? TEAMS.indexOf(S.team) : -1;
+  var ti = S.team ? teamIndexOf(S.team) : -1;
   view = [];
   var flips = 0, bad = 0, biggest = null, restated = 0;
   for (var k = 0; k < ALL.length; k++) {
@@ -138,14 +214,12 @@ function build() {
     tile("Results that CHANGE", num(flips),
          "the winner is different under " + eraLabel(S.target) + " values") +
     tile("Biggest swing in margin", biggest ? biggest.swing + " points" : "–",
-         biggest ? TEAMS[biggest.r[F.home]] + " " + biggest.hs + "–" +
-           biggest.as + " " + TEAMS[biggest.r[F.away]] + "  →  " + biggest.nh +
+         biggest ? homeName(biggest.r) + " " + biggest.hs + "–" +
+           biggest.as + " " + awayName(biggest.r) + "  →  " + biggest.nh +
            "–" + biggest.na + " · " + fmtDate(biggest.r[F.date]) : "") +
     tile("Scores that don't add up", num(bad),
          "the recorded score disagrees with its own era's arithmetic") +
-    tile("Target system", eraLabel(S.target),
-         "try " + tv[0] + " · conversion +" + tv[1] + " · penalty " + tv[2] +
-         " · drop goal " + tv[3] + " · penalty try " + tv[4]);
+    tile("Target system", eraLabel(S.target), valueWords(tv));
 
   document.getElementById("rowcount").textContent = num(view.length);
   document.getElementById("empty").hidden = view.length > 0;
@@ -180,20 +254,20 @@ function paint() {
     out += '<div class="trow' + (d.flips ? " flip" : "") +
       '" style="grid-template-columns:' + GRID + '">' +
       '<div class="date">' + fmtDate(r[F.date]) + "</div>" +
-      '<div title="' + esc(TEAMS[r[F.home]]) + '">' + esc(TEAMS[r[F.home]]) + "</div>" +
+      '<div title="' + esc(homeName(r)) + '">' + esc(homeName(r)) + "</div>" +
       '<div class="score">' + d.hs + "–" + d.as + "</div>" +
-      '<div title="' + esc(TEAMS[r[F.away]]) + '">' + esc(TEAMS[r[F.away]]) + "</div>" +
+      '<div title="' + esc(awayName(r)) + '">' + esc(awayName(r)) + "</div>" +
       '<div class="score restated">' + d.nh + "–" + d.na +
         (d.flips ? '<span class="flipmark" title="the winner changes">⇄</span>'
                  : "") + "</div>" +
       '<div class="num">' + (d.swing || "–") + "</div>" +
-      '<div class="bd">' + d.b.slice(0, 5).join("/") + "</div>" +
-      '<div class="bd">' + d.b.slice(5).join("/") + "</div>" +
+      '<div class="bd">' + d.b.slice(0, HALF).join("/") + "</div>" +
+      '<div class="bd">' + d.b.slice(HALF).join("/") + "</div>" +
       "<div>" + esc(eraOf(d.year)) + "</div>" +
       "<div>" + (d.reconciles
         ? '<span class="ok">yes</span>'
         : '<span class="no" title="' + (d.goals
-            ? "goals = conversions + drop goals"
+            ? "goals = conversions + drop goals + goals from a mark"
             : "under the " + d.year + " system") + '">' +
           d.eh + "–" + d.ea + " ✕</span>") + "</div>" +
       "</div>";
@@ -204,15 +278,28 @@ function paint() {
 
 function renderReference() {
   document.getElementById("src").textContent = "from " + SC.source;
+  /* Headings and cells both come from SC.columns, so a scoring method added
+     to the workbook (goal from a mark, say) appears here by itself and the
+     values can never end up under the wrong heading. */
+  var COLHEAD = {
+    "try": "Try", conversion_bonus: "Conv", penalty_goal: "Pen",
+    drop_goal: "DG", goal_from_mark: "Mark", penalty_try: "Pen try"
+  };
+  var vcols = SC.columns.slice(1);
   var rows = SC.rows;
   document.getElementById("eratable").innerHTML =
-    "<thead><tr><th>Era</th><th>Try</th><th>Conv</th><th>Pen</th>" +
-    "<th>DG</th><th>Pen try</th></tr></thead><tbody>" +
-    rows.map(function (r, i) {
+    "<thead><tr><th>Era</th>" +
+    vcols.map(function (c) {
+      return "<th>" + esc(COLHEAD[c] || c) + "</th>";
+    }).join("") + "</tr></thead><tbody>" +
+    rows.map(function (r) {
       return "<tr" + (r[0] === S.target ? ' class="on"' : "") + "><td>" +
-        eraLabel(r[0]) + "</td><td>" + r[1] + "</td><td>+" + r[2] + "</td><td>" +
-        r[3] + "</td><td>" + r[4] + "</td><td>" + (r[5] || "–") +
-        "</td></tr>";
+        eraLabel(r[0]) + "</td>" +
+        vcols.map(function (c, j) {
+          var val = r[j + 1];
+          if (!val) return "<td>–</td>";
+          return "<td>" + (c === "conversion_bonus" ? "+" : "") + val + "</td>";
+        }).join("") + "</tr>";
     }).join("") + "</tbody>";
   document.getElementById("goalsnote").textContent = SC.goals_rule;
 
@@ -273,7 +360,8 @@ function init() {
     "%) record a full breakdown for both sides, so only those can be " +
     "restated. Every other match appears here not at all. This is a " +
     "limitation of the source data, not of the method — fill in the " +
-    "tries/conversions/penalties/drop goals columns in the spreadsheet and " +
+    "tries/conversions/penalties/drop goals/mark columns in the spreadsheet " +
+    "and " +
     "those matches will appear here on the next Update Archive.";
 
   document.getElementById("f-target").innerHTML = SC.rows.slice().reverse()
@@ -331,19 +419,23 @@ function exportCSV() {
   var tv = valuesFor(S.target);
   var out = [
     ["Restated under", eraLabel(S.target)].map(q).join(","),
-    ["Values", "try " + tv[0] + ", conversion +" + tv[1] + ", penalty " + tv[2] +
-      ", drop goal " + tv[3] + ", penalty try " + tv[4]].map(q).join(","),
+    ["Values", valueWords(tv).replace(/ · /g, ", ")].map(q).join(","),
     ["Source", SC.source].map(q).join(","),
     "",
+    // The breakdown headings are generated from the data, not typed out. They
+    // were typed out once, five per side, and adding the mark column silently
+    // shifted every value right of "Home pen tries" by one.
     ["Date", "Home", "Away", "Home as played", "Away as played",
-     "Home restated", "Away restated", "Swing", "Result changes?",
-     "Home tries", "Home conv", "Home pens", "Home drop goals",
-     "Home pen tries", "Away tries", "Away conv", "Away pens",
-     "Away drop goals", "Away pen tries", "Own-era home", "Own-era away",
-     "Adds up?", "Excel row"].map(q).join(",")
+     "Home restated", "Away restated", "Swing", "Result changes?"]
+      .concat(BO.map(function (n) {
+        return n.replace(/^home_/, "Home ").replace(/^away_/, "Away ")
+                .replace(/_/g, " ");
+      }))
+      .concat(["Own-era home", "Own-era away", "Adds up?", "Excel row"])
+      .map(q).join(",")
   ];
   view.forEach(function (d) {
-    out.push([d.r[F.date], TEAMS[d.r[F.home]], TEAMS[d.r[F.away]], d.hs, d.as,
+    out.push([d.r[F.date], homeName(d.r), awayName(d.r), d.hs, d.as,
       d.nh, d.na, d.swing, d.flips ? "yes" : "no"]
       .concat(d.b)
       .concat([d.eh, d.ea, d.reconciles ? "yes" : "no", d.r[F.excel_row]])
@@ -376,7 +468,7 @@ window.__SC = {
   },
   rows: function (n) {
     return view.slice(0, n || 10).map(function (d) {
-      return [d.r[F.date], TEAMS[d.r[F.home]], d.hs, d.as, TEAMS[d.r[F.away]],
+      return [d.r[F.date], homeName(d.r), d.hs, d.as, awayName(d.r),
               d.nh, d.na, d.flips];
     });
   }

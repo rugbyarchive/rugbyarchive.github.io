@@ -24,6 +24,18 @@ var LK = D.lookups;
 var TEAMS = LK.teams;
 var N = ROWS.length;
 
+/* TEAMS holds the identity a match is RANKED under - one entry per lineage, so
+   filtering for Russia finds the Soviet Union's matches too. ERA holds the name
+   the side actually went by on the day, which is what gets printed. Older data
+   files have no team_era lookup, so fall back to the ranked name. */
+var ERA = LK.team_era || null;
+function homeName(r) {
+  return ERA && r[F.home_as] != null ? ERA[r[F.home_as]] : TEAMS[r[F.home]];
+}
+function awayName(r) {
+  return ERA && r[F.away_as] != null ? ERA[r[F.away_as]] : TEAMS[r[F.away]];
+}
+
 var DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday",
             "Saturday"];
 var DAYS3 = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -69,6 +81,25 @@ var S = {
 
 var teamIdx = {};
 TEAMS.forEach(function (t, i) { teamIdx[t] = i; });
+
+/* A team index from a name that may be EITHER the ranked identity ("Russia")
+   or a name that side used earlier ("Soviet Union"). Deep links from the
+   Rankings Time Machine carry the ERA name, and a plain lookup returns
+   undefined for those - which every caller here reads as "no filter", so the
+   page showed the whole archive while its heading claimed one team. */
+function teamIndexOf(name) {
+  var i = teamIdx[name];
+  if (i !== undefined) return i;
+  if (!ERA) return -1;
+  var e = ERA.indexOf(name);
+  if (e < 0) return -1;
+  for (var k = 0; k < ROWS.length; k++) {
+    if (ROWS[k][F.home_as] === e) return ROWS[k][F.home];
+    if (ROWS[k][F.away_as] === e) return ROWS[k][F.away];
+  }
+  return -1;
+}
+
 
 var idx = new Int32Array(N);      // filtered row indices, reused every pass
 var idxLen = 0;
@@ -138,8 +169,12 @@ function myScores(r) {
 }
 
 function applyFilters() {
-  S.teamI = S.team ? teamIdx[S.team] : -1;
-  S.oppI = S.opp ? teamIdx[S.opp] : -1;
+  S.teamI = S.team ? teamIndexOf(S.team) : -1;
+  S.oppI = S.opp ? teamIndexOf(S.opp) : -1;
+  // a deep link may name a side by an earlier name; show the name the filter
+  // actually resolved to, so the heading and the rows agree
+  if (S.teamI >= 0) S.team = TEAMS[S.teamI];
+  if (S.oppI >= 0) S.opp = TEAMS[S.oppI];
   S.countryI = S.country ? LK.country.indexOf(S.country) : -1;
   S.venueQ = S.stadium ? S.stadium.toLowerCase() : "";
   S.compI = S.comp ? LK.competition.indexOf(S.comp) : -1;
@@ -173,12 +208,21 @@ function sortView() {
     });
   } else if (TEXT_SORT[key] !== undefined) {
     var fi = TEXT_SORT[key];
-    var lut = (fi === F.home || fi === F.away) ? TEAMS
-            : (fi === F.competition ? LK.competition : LK.stadium);
+    // Team columns sort on the DISPLAYED name, not the ranked identity -
+    // otherwise a row reading "Soviet Union" files itself under R for Russia
+    // and the A-Z is one the reader cannot see.
+    var nameOf = fi === F.home ? homeName : (fi === F.away ? awayName : null);
+    var lut = fi === F.competition ? LK.competition : LK.stadium;
     view.sort(function (x, y) {
-      var ax = ROWS[x][fi], ay = ROWS[y][fi];
-      var sx = ax === null ? "￿" : lut[ax];
-      var sy = ay === null ? "￿" : lut[ay];
+      var sx, sy;
+      if (nameOf) {
+        sx = nameOf(ROWS[x]); sy = nameOf(ROWS[y]);
+      } else {
+        var ax = ROWS[x][fi], ay = ROWS[y][fi];
+        var HI = String.fromCharCode(0xffff);
+        sx = ax === null ? HI : lut[ax];
+        sy = ay === null ? HI : lut[ay];
+      }
       return sx < sy ? -dir : (sx > sy ? dir : ORD[y] - ORD[x]);
     });
   } else {
@@ -238,7 +282,7 @@ function fmtDate(s) {
 function fmtNum(n) { return n.toLocaleString("en-GB"); }
 function pct(a, b) { return b ? (100 * a / b).toFixed(1) + "%" : "–"; }
 function scoreline(r, mineFirst) {
-  var h = TEAMS[r[F.home]], a = TEAMS[r[F.away]];
+  var h = homeName(r), a = awayName(r);
   return h + " " + r[F.home_score] + "–" + r[F.away_score] + " " + a;
 }
 function esc(s) {
@@ -294,9 +338,9 @@ function rowHTML(i) {
   return '<div class="trow">' +
     '<div class="date">' + fmtDate(r[F.date]) + "</div>" +
     "<div>" + DAYS3[DOW[i]] + "</div>" +
-    '<div class="' + (hw ? "winner" : "") + '">' + esc(TEAMS[r[F.home]]) + "</div>" +
+    '<div class="' + (hw ? "winner" : "") + '">' + esc(homeName(r)) + "</div>" +
     '<div class="score">' + r[F.home_score] + "–" + r[F.away_score] + "</div>" +
-    '<div class="' + (aw ? "winner" : "") + '">' + esc(TEAMS[r[F.away]]) + "</div>" +
+    '<div class="' + (aw ? "winner" : "") + '">' + esc(awayName(r)) + "</div>" +
     '<div><span class="res ' + res + '">' + res + "</span></div>" +
     '<div class="num">' + r[F.margin] + "</div>" +
     '<div title="' + esc(comp) + '">' + esc(comp) + tags + "</div>" +
@@ -692,8 +736,8 @@ function exportCSV() {
   }
   for (var k = 0; k < view.length; k++) {
     var i = view[k], r = ROWS[i];
-    out.push([r[F.date], DAYS[DOW[i]], TEAMS[r[F.home]], r[F.home_score],
-      r[F.away_score], TEAMS[r[F.away]], outcome(r), r[F.margin],
+    out.push([r[F.date], DAYS[DOW[i]], homeName(r), r[F.home_score],
+      r[F.away_score], awayName(r), outcome(r), r[F.margin],
       r[F.competition] === null ? "" : LK.competition[r[F.competition]],
       r[F.match_type] === null ? "" : LK.match_type[r[F.match_type]],
       r[F.stadium] === null ? "" : LK.stadium[r[F.stadium]],
@@ -727,8 +771,8 @@ window.__ARCHIVE = {
   rowsOut: function (n) {
     return view.slice(0, n || 5).map(function (i) {
       var r = ROWS[i];
-      return r[F.date] + " " + TEAMS[r[F.home]] + " " + r[F.home_score] + "-" +
-             r[F.away_score] + " " + TEAMS[r[F.away]];
+      return r[F.date] + " " + homeName(r) + " " + r[F.home_score] + "-" +
+             r[F.away_score] + " " + awayName(r);
     });
   }
 };
