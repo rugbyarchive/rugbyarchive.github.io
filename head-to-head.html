@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Every meeting between any two international rugby sides, with a chart of who has been ahead across the whole rivalry.">
+<meta name="theme-color" content="#1f3864">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Rugby Archive">
+<meta property="og:title" content="Rugby Archive — Head to Head">
+<meta property="og:description" content="Every meeting between any two international rugby sides, with a chart of who has been ahead across the whole rivalry.">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231f3864'/%3E%3Cellipse cx='16' cy='16' rx='11' ry='7' transform='rotate(-35 16 16)' fill='none' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M11 21 L21 11' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M13.5 16.5 L15.5 18.5 M16.5 13.5 L18.5 15.5' stroke='%23fff' stroke-width='1.6'/%3E%3C/svg%3E">
+<title>Rugby Archive — Head to Head</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body data-palette="#2a78d6,#e34948">
+
+<header class="topbar">
+  <div class="brand">
+    <h1>Rugby Archive</h1>
+    <nav class="mainnav">
+      <a href="index.html">Super Filter</a>
+      <a href="rankings.html">Rankings Time Machine</a>
+      <a href="head-to-head.html" class="here">Head to Head</a>
+      <a href="scoring.html">Score Normalisation</a>
+    </nav>
+  </div>
+  <div class="buildinfo" id="buildinfo"></div>
+</header>
+
+<div id="loading" class="loading">
+  <div class="spinner"></div>
+  <p>Loading the archive…</p>
+</div>
+
+<div id="dataerror" class="dataerror" hidden>
+  <h2>I can't find the data file.</h2>
+  <p>This page reads <code>site\data\archive-data.js</code>, written for it by
+     the pipeline.</p>
+  <p><strong>To fix it:</strong> go up to the Rugby-Archive folder, double-click
+     <strong>Update Archive</strong>, wait for FINISHED, then open this page
+     again.</p>
+</div>
+
+<main id="app" class="h2h" hidden>
+
+  <section class="pickbar">
+    <div class="rule">
+      <span>Team</span>
+      <select id="f-a"></select>
+    </div>
+    <button type="button" id="swap" class="ghostbtn swapbtn" title="Swap the two teams">⇄</button>
+    <div class="rule">
+      <span>Against</span>
+      <select id="f-b"></select>
+    </div>
+    <div class="rule">
+      <span>Scores shown</span>
+      <div class="segbtns" id="f-basis">
+        <button type="button" data-v="played" class="on">As played</button>
+        <button type="button" data-v="restated">Restated</button>
+      </div>
+    </div>
+    <div class="rule" id="era-wrap" hidden>
+      <span>Restated under</span>
+      <select id="f-era"></select>
+    </div>
+    <div class="rule grow"></div>
+    <div class="rule">
+      <span>&nbsp;</span>
+      <button type="button" id="export" class="ghostbtn">Download as CSV</button>
+    </div>
+  </section>
+
+  <p class="rulenote" id="basisnote" hidden></p>
+
+  <!-- ============================ two-team view ======================== -->
+  <section id="rivalry" hidden>
+
+    <div class="h2hhead">
+      <div class="side a">
+        <div class="sname" id="a-name">—</div>
+        <div class="swins" id="a-wins">—</div>
+        <div class="slabel">wins</div>
+      </div>
+      <div class="middle">
+        <div class="mtotal"><b id="m-total">—</b> meetings</div>
+        <div class="mdraws" id="m-draws"></div>
+        <div class="mspan" id="m-span"></div>
+        <div class="leadbar" id="leadbar"><i class="a"></i><i class="d"></i><i class="b"></i></div>
+        <div class="mverdict" id="m-verdict"></div>
+      </div>
+      <div class="side b">
+        <div class="sname" id="b-name">—</div>
+        <div class="swins" id="b-wins">—</div>
+        <div class="slabel">wins</div>
+      </div>
+    </div>
+
+    <div class="chartcard">
+      <div class="charthead">
+        <h2>Who has been ahead, and when</h2>
+        <p id="chart-sub">Running difference in wins across the whole rivalry.</p>
+      </div>
+      <div class="chartlegend" id="chart-legend"></div>
+      <div class="chartbox" id="chartbox">
+        <svg id="chart" role="img"></svg>
+        <div class="tip" id="tip" hidden></div>
+      </div>
+      <p class="chartnote" id="chart-note"></p>
+    </div>
+
+    <div class="cards h2hcards" id="h2h-cards"></div>
+
+    <div class="splits">
+      <div class="splitcard">
+        <div class="card-label">Where it was played</div>
+        <div id="split-venue"></div>
+      </div>
+      <div class="splitcard">
+        <div class="card-label">By era</div>
+        <div id="split-era"></div>
+      </div>
+      <div class="splitcard">
+        <div class="card-label">By competition</div>
+        <div id="split-comp"></div>
+      </div>
+    </div>
+
+    <div class="tablebar">
+      <div class="count">Every meeting — <b id="meetcount">0</b></div>
+      <div class="tablebar-right"><span class="perf" id="perf"></span></div>
+    </div>
+    <div class="tablehead" id="meethead"></div>
+    <div class="tablewrap short" id="meetwrap">
+      <div class="tablespacer" id="meetspacer"></div>
+      <div class="tablebody" id="meetbody"></div>
+      <div class="empty" id="meetempty" hidden>
+        <p>These two have never met.</p>
+        <p class="sub">At least, not in this archive.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================== one-team view ========================== -->
+  <section id="allopp" hidden>
+    <div class="analysis-head">
+      <h2 id="opp-title">—</h2>
+      <p id="opp-sub"></p>
+    </div>
+    <div class="tablebar">
+      <div class="count"><b id="oppcount">0</b> opponents</div>
+      <div class="tablebar-right">
+        <input type="text" id="opp-find" placeholder="find an opponent">
+      </div>
+    </div>
+    <div class="tablehead" id="opphead"></div>
+    <div class="tablewrap" id="oppwrap">
+      <div class="tablespacer" id="oppspacer"></div>
+      <div class="tablebody" id="oppbody"></div>
+    </div>
+  </section>
+
+</main>
+
+<script src="data/archive-data.js" onerror="window.__dataFailed=true"></script>
+<script src="assets/h2h.js"></script>
+</body>
+</html>

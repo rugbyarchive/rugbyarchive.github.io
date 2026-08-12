@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="The World Rugby rankings replayed from 27 March 1871. Drag the slider to any date and see the full world table, under four what-if rule sets.">
+<meta name="theme-color" content="#1f3864">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Rugby Archive">
+<meta property="og:title" content="Rugby Archive — Rankings Time Machine">
+<meta property="og:description" content="The World Rugby rankings replayed from 27 March 1871. Drag the slider to any date and see the full world table, under four what-if rule sets.">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231f3864'/%3E%3Cellipse cx='16' cy='16' rx='11' ry='7' transform='rotate(-35 16 16)' fill='none' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M11 21 L21 11' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M13.5 16.5 L15.5 18.5 M16.5 13.5 L18.5 15.5' stroke='%23fff' stroke-width='1.6'/%3E%3C/svg%3E">
+<title>Rugby Archive — Rankings Time Machine</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <h1>Rugby Archive</h1>
+    <nav class="mainnav">
+      <a href="index.html">Super Filter</a>
+      <a href="rankings.html" class="here">Rankings Time Machine</a>
+      <a href="head-to-head.html">Head to Head</a>
+      <a href="scoring.html">Score Normalisation</a>
+    </nav>
+  </div>
+  <div class="buildinfo" id="buildinfo"></div>
+</header>
+
+<div id="loading" class="loading">
+  <div class="spinner"></div>
+  <p>Loading 155 years of rankings…</p>
+</div>
+
+<div id="dataerror" class="dataerror" hidden>
+  <h2>I can't find the rankings data file.</h2>
+  <p>This page reads <code>site\data\rankings-data.js</code>, which is written
+     for it by the pipeline.</p>
+  <p><strong>To fix it:</strong> go up to the Rugby-Archive folder, double-click
+     <strong>Update Archive</strong>, wait for FINISHED, then open this page
+     again.</p>
+</div>
+
+<main id="app" class="tm" hidden>
+
+  <section class="timebar">
+    <div class="timebar-top">
+      <div class="asat">
+        <span class="asat-label">World rankings as at the end of</span>
+        <div class="asat-date" id="asat-date">—</div>
+      </div>
+
+      <div class="timecontrols">
+        <input type="date" id="datebox" min="1871-03-27">
+        <button type="button" id="play" class="playbtn">▶ Play</button>
+        <div class="segbtns speed" id="speed">
+          <button type="button" data-v="1" class="on">1×</button>
+          <button type="button" data-v="4">4×</button>
+          <button type="button" data-v="16">16×</button>
+        </div>
+        <button type="button" id="today" class="ghostbtn">Jump to today</button>
+      </div>
+    </div>
+
+    <input type="range" id="slider" class="slider" min="0" max="100" value="100">
+    <div class="sliderticks" id="sliderticks"></div>
+
+    <div class="chips jumps" id="jumps"></div>
+  </section>
+
+  <section class="rulebar">
+    <div class="rule">
+      <span>Ranking rules</span>
+      <div class="segbtns" id="f-mode">
+        <button type="button" data-v="official" class="on">Official</button>
+        <button type="button" data-v="legacy">Legacy model</button>
+      </div>
+    </div>
+    <div class="rule">
+      <span>British &amp; Irish Lions / British Isles</span>
+      <div class="segbtns" id="f-lions">
+        <button type="button" data-v="1" class="on">Counted</button>
+        <button type="button" data-v="0">Not ranking-eligible</button>
+      </div>
+    </div>
+    <div class="rule">
+      <span>Teams with no recent match</span>
+      <div class="segbtns" id="f-dormant">
+        <button type="button" data-v="show" class="on">Show all</button>
+        <button type="button" data-v="hide">Hide idle 4 years+</button>
+      </div>
+    </div>
+    <div class="rule">
+      <span>Compare against</span>
+      <select id="f-compare">
+        <option value="">nothing</option>
+      </select>
+    </div>
+    <div class="rule grow">
+      <span>Find a team</span>
+      <input type="text" id="f-find" placeholder="type a name">
+    </div>
+    <div class="rule">
+      <span>&nbsp;</span>
+      <button type="button" id="export" class="ghostbtn">Download this table as CSV</button>
+    </div>
+  </section>
+
+  <p class="rulenote" id="rulenote"></p>
+
+  <section class="tmbody">
+    <aside class="topline">
+      <div class="card">
+        <div class="card-label">World No.1 on this date</div>
+        <div class="no1" id="k-no1">—</div>
+        <div class="sub" id="k-no1-sub"></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Teams ranked by this date</div>
+        <div class="big" id="k-teams">—</div>
+        <div class="sub" id="k-teams-sub"></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Matches counted so far</div>
+        <div class="big" id="k-matches">—</div>
+        <div class="sub" id="k-matches-sub"></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Biggest 12-month climb</div>
+        <div class="big small" id="k-climb">—</div>
+        <div class="sub" id="k-climb-sub"></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Biggest 12-month fall</div>
+        <div class="big small" id="k-fall">—</div>
+        <div class="sub" id="k-fall-sub"></div>
+      </div>
+      <div class="card lastmatches">
+        <div class="card-label">Last matches before this date</div>
+        <ul id="k-recent"></ul>
+      </div>
+    </aside>
+
+    <div class="tmtable">
+      <div class="tablebar">
+        <div class="count"><b id="rowcount">0</b> ranked teams</div>
+        <div class="tablebar-right">
+          <span class="perf" id="perf"></span>
+        </div>
+      </div>
+      <div class="tablehead" id="tablehead"></div>
+      <div class="tablewrap" id="tablewrap">
+        <div class="tablespacer" id="tablespacer"></div>
+        <div class="tablebody" id="tablebody"></div>
+        <div class="empty" id="empty" hidden>
+          <p>No team has played yet on this date.</p>
+          <p class="sub">The first international was 27 March 1871.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script src="data/rankings-data.js" onerror="window.__dataFailed=true"></script>
+<script src="assets/rankings.js"></script>
+</body>
+</html>

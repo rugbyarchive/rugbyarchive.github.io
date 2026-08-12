@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Re-score historical rugby matches under any scoring system the game has used. 15 results change winner under modern values.">
+<meta name="theme-color" content="#1f3864">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Rugby Archive">
+<meta property="og:title" content="Rugby Archive — Score Normalisation">
+<meta property="og:description" content="Re-score historical rugby matches under any scoring system the game has used. 15 results change winner under modern values.">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231f3864'/%3E%3Cellipse cx='16' cy='16' rx='11' ry='7' transform='rotate(-35 16 16)' fill='none' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M11 21 L21 11' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M13.5 16.5 L15.5 18.5 M16.5 13.5 L18.5 15.5' stroke='%23fff' stroke-width='1.6'/%3E%3C/svg%3E">
+<title>Rugby Archive — Score Normalisation</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <h1>Rugby Archive</h1>
+    <nav class="mainnav">
+      <a href="index.html">Super Filter</a>
+      <a href="rankings.html">Rankings Time Machine</a>
+      <a href="head-to-head.html">Head to Head</a>
+      <a href="scoring.html" class="here">Score Normalisation</a>
+    </nav>
+  </div>
+  <div class="buildinfo" id="buildinfo"></div>
+</header>
+
+<div id="loading" class="loading">
+  <div class="spinner"></div>
+  <p>Loading the archive…</p>
+</div>
+
+<div id="dataerror" class="dataerror" hidden>
+  <h2>I can't find the data file.</h2>
+  <p>This page reads <code>site\data\archive-data.js</code>, written for it by
+     the pipeline.</p>
+  <p><strong>To fix it:</strong> go up to the Rugby-Archive folder, double-click
+     <strong>Update Archive</strong>, wait for FINISHED, then open this page
+     again.</p>
+</div>
+
+<div id="nodata" class="dataerror" hidden>
+  <h2>No scoring breakdowns in this build.</h2>
+  <p>This page needs the tries / conversions / penalties / drop goals / penalty
+     try columns filled in. None of the matches in the current build have a
+     complete set for both sides.</p>
+</div>
+
+<main id="app" class="sc" hidden>
+
+  <section class="intro">
+    <h2>What this page does</h2>
+    <p>A try was worth 1 point in 1890 and is worth 5 today. Comparing scores
+       across eras is therefore meaningless — until you re-score the match.
+       Where the archive records the actual <b>tries, conversions, penalties,
+       drop goals and penalty tries</b>, every match can be replayed under any
+       scoring system rugby has ever used.</p>
+    <p class="warn" id="coverage"></p>
+  </section>
+
+  <section class="rulebar">
+    <div class="rule">
+      <span>Re-score everything under</span>
+      <select id="f-target"></select>
+    </div>
+    <div class="rule">
+      <span>Show</span>
+      <div class="segbtns" id="f-show">
+        <button type="button" data-v="all" class="on">Every restatable match</button>
+        <button type="button" data-v="flip">Only results that change</button>
+        <button type="button" data-v="bad">Only scores that don't add up</button>
+      </div>
+    </div>
+    <div class="rule">
+      <span>Team</span>
+      <select id="f-team"></select>
+    </div>
+    <div class="rule grow"></div>
+    <div class="rule">
+      <span>&nbsp;</span>
+      <button type="button" id="export" class="ghostbtn">Download as CSV</button>
+    </div>
+  </section>
+
+  <section class="cards sccards" id="sccards"></section>
+
+  <section class="scbody">
+    <aside class="eraref">
+      <div class="card-label">The scoring systems <em class="hint" id="src"></em></div>
+      <table class="mini" id="eratable"></table>
+      <p class="chartnote" id="goalsnote"></p>
+      <div class="card-label" style="margin-top:14px">Breakdowns recorded, by era</div>
+      <table class="mini" id="covtable"></table>
+    </aside>
+
+    <div class="sctable">
+      <div class="tablebar">
+        <div class="count"><b id="rowcount">0</b> matches</div>
+        <div class="tablebar-right"><span class="perf" id="perf"></span></div>
+      </div>
+      <div class="tablehead" id="tablehead"></div>
+      <div class="tablewrap" id="tablewrap">
+        <div class="tablespacer" id="tablespacer"></div>
+        <div class="tablebody" id="tablebody"></div>
+        <div class="empty" id="empty" hidden>
+          <p>Nothing matches that.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script src="data/archive-data.js" onerror="window.__dataFailed=true"></script>
+<script src="assets/scoring.js"></script>
+</body>
+</html>

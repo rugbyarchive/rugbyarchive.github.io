@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Every international rugby union match since 1871 in one table, with stackable filters and live aggregates: team, opponent, era, venue, margin, day of week and world ranking at the time.">
+<meta name="theme-color" content="#1f3864">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Rugby Archive">
+<meta property="og:title" content="Rugby Archive — the Super Filter">
+<meta property="og:description" content="Every international rugby union match since 1871 in one table, with stackable filters and live aggregates: team, opponent, era, venue, margin, day of week and world ranking at the time.">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231f3864'/%3E%3Cellipse cx='16' cy='16' rx='11' ry='7' transform='rotate(-35 16 16)' fill='none' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M11 21 L21 11' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M13.5 16.5 L15.5 18.5 M16.5 13.5 L18.5 15.5' stroke='%23fff' stroke-width='1.6'/%3E%3C/svg%3E">
+<title>Rugby Archive — the Super Filter</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <h1>Rugby Archive</h1>
+    <nav class="mainnav">
+      <a href="index.html" class="here">Super Filter</a>
+      <a href="rankings.html">Rankings Time Machine</a>
+      <a href="head-to-head.html">Head to Head</a>
+      <a href="scoring.html">Score Normalisation</a>
+    </nav>
+  </div>
+  <div class="buildinfo" id="buildinfo"></div>
+</header>
+
+<div id="loading" class="loading">
+  <div class="spinner"></div>
+  <p>Loading the archive…</p>
+</div>
+
+<div id="dataerror" class="dataerror" hidden>
+  <h2>I can't find the data file.</h2>
+  <p>The website reads <code>site\data\archive-data.js</code>, which is written
+     for it by the pipeline.</p>
+  <p><strong>To fix it:</strong> go up to the Rugby-Archive folder, double-click
+     <strong>Update Archive</strong>, wait for FINISHED, then open this page
+     again.</p>
+</div>
+
+<main id="app" hidden>
+
+  <aside class="filters" id="filters">
+    <div class="filters-head">
+      <h2>Filters</h2>
+      <button type="button" id="reset" class="linkbtn">Clear all</button>
+    </div>
+
+    <section class="fgroup">
+      <h3>Who</h3>
+      <label class="f">
+        <span>Team</span>
+        <select id="f-team"></select>
+      </label>
+      <label class="f">
+        <span>Opponent</span>
+        <select id="f-opp"></select>
+      </label>
+      <div class="f seg" id="f-side-wrap">
+        <span>Playing</span>
+        <div class="segbtns" id="f-side">
+          <button type="button" data-v="any" class="on">Home or away</button>
+          <button type="button" data-v="home">Home</button>
+          <button type="button" data-v="away">Away</button>
+        </div>
+        <p class="note">At World Cups and other neutral venues this is only how
+          the fixture was listed, not a real home advantage.</p>
+      </div>
+    </section>
+
+    <section class="fgroup">
+      <h3>When</h3>
+      <div class="f rangerow">
+        <span>Years</span>
+        <div class="rangepair">
+          <input type="number" id="f-year-from" min="1871" max="2026" placeholder="1871">
+          <em>to</em>
+          <input type="number" id="f-year-to" min="1871" max="2026" placeholder="2026">
+        </div>
+      </div>
+      <div class="chips" id="f-era">
+        <button type="button" data-from="1871" data-to="1899">1870s–90s</button>
+        <button type="button" data-from="1900" data-to="1945">1900–45</button>
+        <button type="button" data-from="1946" data-to="1967">Post-war</button>
+        <button type="button" data-from="1968" data-to="1994">Amateur late</button>
+        <button type="button" data-from="1995" data-to="2026">Professional</button>
+      </div>
+      <div class="f">
+        <span>Day of week</span>
+        <div class="chips days" id="f-dow">
+          <button type="button" data-v="1">Mon</button>
+          <button type="button" data-v="2">Tue</button>
+          <button type="button" data-v="3">Wed</button>
+          <button type="button" data-v="4">Thu</button>
+          <button type="button" data-v="5">Fri</button>
+          <button type="button" data-v="6">Sat</button>
+          <button type="button" data-v="0">Sun</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="fgroup">
+      <h3>Where</h3>
+      <label class="f">
+        <span>Venue country <em class="sparse" id="sparse-country"></em></span>
+        <select id="f-country"></select>
+      </label>
+      <label class="f">
+        <span>Venue contains <em class="sparse" id="sparse-stadium"></em></span>
+        <input list="stadiums" id="f-stadium" placeholder="stadium, city or country">
+        <datalist id="stadiums"></datalist>
+      </label>
+      <div class="f">
+        <span>Venue type</span>
+        <div class="segbtns" id="f-neutral">
+          <button type="button" data-v="any" class="on">Any</button>
+          <button type="button" data-v="0">Home venue</button>
+          <button type="button" data-v="1">Neutral</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="fgroup">
+      <h3>What kind of match</h3>
+      <label class="f">
+        <span>Competition / tour <em class="sparse" id="sparse-comp"></em></span>
+        <select id="f-comp"></select>
+      </label>
+      <div class="f">
+        <span>World Cup</span>
+        <div class="segbtns" id="f-wc">
+          <button type="button" data-v="any" class="on">Any</button>
+          <button type="button" data-v="1">RWC only</button>
+          <button type="button" data-v="0">Exclude RWC</button>
+        </div>
+      </div>
+      <div class="f">
+        <span>Counts towards rankings</span>
+        <div class="segbtns" id="f-elig">
+          <button type="button" data-v="any" class="on">Any</button>
+          <button type="button" data-v="1">Yes</button>
+          <button type="button" data-v="0">No</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="fgroup">
+      <h3>The result</h3>
+      <div class="f">
+        <span id="result-label">Result</span>
+        <div class="segbtns wrap" id="f-result">
+          <button type="button" data-v="any" class="on">Any</button>
+          <button type="button" data-v="W">Win</button>
+          <button type="button" data-v="D">Draw</button>
+          <button type="button" data-v="L">Loss</button>
+        </div>
+      </div>
+      <div class="f rangerow">
+        <span>Winning margin</span>
+        <div class="rangepair">
+          <input type="number" id="f-margin-min" min="0" placeholder="0">
+          <em>to</em>
+          <input type="number" id="f-margin-max" min="0" placeholder="any">
+        </div>
+      </div>
+      <div class="f rangerow">
+        <span>Opponent's world rank at the time</span>
+        <div class="rangepair">
+          <input type="number" id="f-oppr-min" min="1" placeholder="1">
+          <em>to</em>
+          <input type="number" id="f-oppr-max" min="1" placeholder="any">
+        </div>
+      </div>
+    </section>
+  </aside>
+
+  <section class="results">
+
+    <div class="analysis" id="analysis">
+      <div class="analysis-head">
+        <h2 id="an-title">Every match</h2>
+        <p id="an-sub"></p>
+      </div>
+
+      <div class="cards">
+        <div class="card wide">
+          <div class="card-label" id="wdl-label">Played / Won / Drawn / Lost</div>
+          <div class="wdl">
+            <div><b id="k-played">–</b><span>played</span></div>
+            <div class="win"><b id="k-won">–</b><span id="k-won-l">won</span></div>
+            <div class="draw"><b id="k-drawn">–</b><span>drawn</span></div>
+            <div class="loss"><b id="k-lost">–</b><span id="k-lost-l">lost</span></div>
+          </div>
+          <div class="winbar" id="winbar">
+            <i class="w"></i><i class="d"></i><i class="l"></i>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-label">Win rate</div>
+          <div class="big" id="k-winpct">–</div>
+          <div class="sub" id="k-winpct-sub">draws count as half in brackets</div>
+        </div>
+
+        <div class="card">
+          <div class="card-label">Points for / against</div>
+          <div class="big" id="k-points">–</div>
+          <div class="sub" id="k-points-sub"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-label">Average score</div>
+          <div class="big" id="k-avg">–</div>
+          <div class="sub" id="k-avg-sub"></div>
+        </div>
+
+        <div class="card wide">
+          <div class="card-label">Records in this selection</div>
+          <ul class="records">
+            <li><span>Biggest win</span><b id="k-bigwin">–</b></li>
+            <li><span>Biggest defeat</span><b id="k-bigloss">–</b></li>
+            <li><span>Highest scoring</span><b id="k-highest">–</b></li>
+            <li><span>First / last</span><b id="k-span">–</b></li>
+          </ul>
+        </div>
+
+        <div class="card wide">
+          <div class="card-label">Longest runs <em class="hint">within this selection, in date order</em></div>
+          <ul class="records">
+            <li><span>Winning streak</span><b id="k-winstreak">–</b></li>
+            <li><span>Unbeaten run</span><b id="k-unbeaten">–</b></li>
+            <li><span>Losing streak</span><b id="k-losestreak">–</b></li>
+          </ul>
+        </div>
+
+        <div class="card wide form">
+          <div class="card-label">Most recent 30 results in this selection <em class="hint">newest on the right</em></div>
+          <div class="formstrip" id="k-form"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tablebar">
+      <div class="count"><b id="rowcount">0</b> matches<span id="pctall"></span></div>
+      <div class="tablebar-right">
+        <span class="perf" id="perf"></span>
+        <button type="button" id="export" class="ghostbtn">Download this list as CSV</button>
+      </div>
+    </div>
+
+    <div class="tablehead" id="tablehead"></div>
+    <div class="tablewrap" id="tablewrap">
+      <div class="tablespacer" id="tablespacer"></div>
+      <div class="tablebody" id="tablebody"></div>
+      <div class="empty" id="empty" hidden>
+        <p>No matches fit all of those filters at once.</p>
+        <p class="sub">Loosen one of them — or that combination genuinely never happened.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script src="data/archive-data.js" onerror="window.__dataFailed=true"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
