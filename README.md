@@ -34,4 +34,4 @@ Every figure on every page is cross-checked against an independent Python
 recomputation before release. Known data gaps and open audit items are
 documented rather than hidden — see the coverage notes on each page.
 
-Built 2026-08-12 at 09:08:04 from `Historical Rugby Results.xlsx`.
+Built 2026-08-12 at 14:12:29 from `Historical Rugby Results.xlsx`.

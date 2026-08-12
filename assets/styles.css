@@ -16,7 +16,17 @@
   --win-bg:#e6f2ec;
   --draw-bg:#f6efdc;
   --loss-bg:#f8e9e9;
-  --row-h:34px;
+  --row-h:37px;
+  --drawer-h:132px;
+  /* Role tokens. The terminal theme redefines these as syntax-highlight
+     colours; the light theme needs its own values or every rule that uses
+     one falls back to "inherit" and the row loses all its hierarchy. */
+  --t-date:#46536b;
+  --t-team:#16202e;
+  --t-score:#1f3864;
+  --t-rank:#7a5c9e;
+  --t-meta:#66748a;
+  --t-accent:#1f3864;
   --sans:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
   --mono:"Cascadia Mono",Consolas,"SF Mono",Menlo,monospace;
 }
@@ -525,4 +535,280 @@ main.sc{display:block;height:auto;min-height:calc(100vh - 62px)}
   .scbody{grid-template-columns:1fr;height:auto}
   .eraref{border-right:0;border-bottom:1px solid var(--line)}
   .sctable{height:60vh}
+}
+
+/* ==========================================================================
+   THE TERMINAL THEME
+   A code-editor look, chosen over an 8-bit one for a specific reason: nearly
+   every value in this table is a number, and monospace puts every digit in the
+   same column down the whole page. 43-19 sits directly above 24-29 and you can
+   read the shape of a column at a glance. Colour follows the ROLE of a value -
+   date, team, score, muted metadata - which is a fixed set of five or six
+   hues, rather than following team identity, which would need 306 and fail
+   every contrast and colour-blindness check. Identity is carried by the flag.
+   ========================================================================== */
+[data-theme="terminal"]{
+  --navy:#0d1117;
+  --navy-2:#161b22;
+  --ink:#c9d1d9;          /* primary text            */
+  --muted:#7d8794;        /* metadata, labels        */
+  --line:#242a33;
+  --line-soft:#1a1f27;
+  --bg:#0d1117;
+  --panel:#11161d;
+  --win:#4fb477;
+  --draw:#d3ad4a;
+  --loss:#e0656b;
+  --win-bg:#132b1f;
+  --draw-bg:#2b2517;
+  --loss-bg:#2c1719;
+  /* the role tokens - the "syntax highlighting" */
+  --t-date:#6a9955;       /* comment green, for the date       */
+  --t-team:#9cdcfe;       /* identifier blue, for team names   */
+  --t-score:#dcdcaa;      /* function yellow, for the score    */
+  --t-rank:#c586c0;       /* keyword mauve, for the ranking    */
+  --t-meta:#868f9c;       /* muted, for venue and competition  */
+  --t-accent:#ce9178;     /* string orange, for highlights     */
+}
+[data-theme="terminal"] body{font-family:var(--mono);font-size:13px}
+[data-theme="terminal"] .topbar{border-bottom:1px solid var(--line)}
+[data-theme="terminal"] .topbar h1{color:var(--t-accent)}
+[data-theme="terminal"] .mainnav a{color:var(--muted)}
+[data-theme="terminal"] .mainnav a.here,
+[data-theme="terminal"] .mainnav a:hover{color:var(--ink)}
+[data-theme="terminal"] .tablewrap,
+[data-theme="terminal"] .card{background:var(--panel)}
+[data-theme="terminal"] .tablehead{background:#161b22;color:var(--muted)}
+[data-theme="terminal"] .trow:hover{background:#161b22}
+[data-theme="terminal"] .trow.open{background:#161b22}
+[data-theme="terminal"] input,[data-theme="terminal"] select{
+  background:#0d1117;color:var(--ink);border-color:var(--line);
+  font-family:var(--mono);
+}
+[data-theme="terminal"] .filters,[data-theme="terminal"] .analysis{
+  background:var(--panel);border-color:var(--line);
+}
+[data-theme="terminal"] .drawer{background:#0b0f14}
+
+/* ------------------------------------------------------- the theme switch */
+.themeswitch{
+  display:inline-flex;border:1px solid rgba(255,255,255,.28);border-radius:5px;
+  overflow:hidden;margin-left:14px;vertical-align:middle;
+}
+.themeswitch button{
+  background:none;border:0;color:#c3cee4;font:inherit;font-size:10.5px;
+  letter-spacing:.05em;text-transform:uppercase;padding:3px 9px;cursor:pointer;
+}
+.themeswitch button.on{background:rgba(255,255,255,.16);color:#fff}
+[data-theme="terminal"] .themeswitch{border-color:var(--line)}
+[data-theme="terminal"] .themeswitch button{color:var(--muted)}
+[data-theme="terminal"] .themeswitch button.on{
+  background:var(--line);color:var(--t-accent);
+}
+
+/* ==========================================================================
+   THE TWO-LINE MATCH ROW
+   Line 1 is the fixture, mirrored around the dash: flag, rank, name, score -
+   score, name, rank, flag. Line 2 is its own grid of three aligned slots, so
+   venue, competition and crowd can each be scanned down the page.
+   The row is ALWAYS two lines. An absent second line would give rows two
+   different heights, and the virtual table computes scroll position from one
+   fixed height - the same trap the expanding drawer has to avoid.
+   ========================================================================== */
+.tablehead.fx,.trow.fx{
+  display:grid;
+  grid-template-columns:
+    112px minmax(150px,1fr) 96px minmax(150px,1fr) 56px 28px;
+  grid-template-rows:20px 17px;
+  align-items:center;
+}
+.trow.fx{height:var(--row-h);border-bottom:1px solid var(--line-soft)}
+.trow.fx>div{padding:0 6px;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap}
+.fx .c-date{grid-area:1/1;font-family:var(--mono);color:var(--t-date);
+  font-size:11.5px;letter-spacing:-.2px}
+.fx .c-when{grid-area:2/1;font-size:10.5px;color:var(--t-meta)}
+/* Each side is one cell. Flexbox keeps flag, rank and name locked together
+   and pushed against the score, so the score column still lines up down the
+   page while nothing floats off on its own. */
+.fx .c-home,.fx .c-away{
+  grid-row:1;display:flex;align-items:center;gap:7px;min-width:0;
+  color:var(--t-team);
+}
+.fx .c-home{grid-column:2;justify-content:flex-end}
+.fx .c-away{grid-column:4;justify-content:flex-start}
+.fx .c-home .nm,.fx .c-away .nm{
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;
+}
+.fx .c-home .rk,.fx .c-away .rk{
+  font-size:10.5px;color:var(--t-rank);font-variant-numeric:tabular-nums;
+  flex:0 0 auto;
+}
+.fx .c-home .fg,.fx .c-away .fg{display:flex;flex:0 0 auto}
+.fx .c-sc{grid-area:1/3;text-align:center;font-family:var(--mono);
+  font-weight:600;color:var(--t-score);font-variant-numeric:tabular-nums;
+  letter-spacing:.02em}
+.fx .c-tag{grid-area:1/5;text-align:right}
+.fx .c-exp{grid-area:1/6;text-align:center;padding:0}
+/* line two - three slots that line up down the whole page */
+.fx .c-venue{grid-area:2/2/2/4;font-size:10.5px;color:var(--t-meta)}
+.fx .c-comp{grid-area:2/4/2/5;font-size:10.5px;color:var(--t-meta)}
+.fx .c-crowd{grid-area:2/5/2/7;font-size:10.5px;color:var(--t-meta);
+  text-align:right;font-variant-numeric:tabular-nums}
+.tablehead.fx .c-home{justify-content:flex-end}
+.tablehead.fx .c-away{justify-content:flex-start}
+.fx .loserside{opacity:.62}
+.fx .win{font-weight:650}
+.flag{
+  display:block;image-rendering:pixelated;border-radius:1px;
+  box-shadow:0 0 0 1px rgba(0,0,0,.18);
+}
+.flag-unknown{opacity:.42}
+.expbtn{
+  border:0;background:none;color:var(--muted);cursor:pointer;font:inherit;
+  font-size:13px;line-height:1;padding:2px 4px;border-radius:3px;
+}
+.expbtn:hover{color:var(--ink);background:rgba(127,127,127,.16)}
+.trow.fx.open .expbtn{color:var(--t-accent)}
+
+/* ---------------------------------------------------------- the drawer */
+.drawer{
+  height:var(--drawer-h);overflow:hidden;background:#f8fafc;
+  border-bottom:1px solid var(--line);font-size:11.5px;
+  display:grid;grid-template-columns:minmax(320px,1.15fr) minmax(300px,1fr);
+  gap:0 26px;padding:8px 14px 8px 18px;
+}
+.drawer h4{
+  margin:0 0 3px;font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--muted);font-weight:650;
+}
+.drawer table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+.drawer th{
+  font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);
+  font-weight:600;text-align:right;padding:0 5px 2px;
+}
+.drawer th:first-child{text-align:left}
+.drawer td{padding:1px 5px;text-align:right;white-space:nowrap}
+.drawer td:first-child{text-align:left;color:var(--t-team)}
+.drawer .tot{font-weight:650;color:var(--t-score)}
+.drawer .ok{color:var(--win)}
+.drawer .bad{color:var(--loss)}
+.drawer .restate td{color:var(--muted);font-style:italic}
+.drawer dl{margin:0;display:grid;grid-template-columns:74px 1fr;gap:1px 8px}
+.drawer dt{color:var(--muted);font-size:10.5px}
+.drawer dd{margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.drawer .none{color:var(--muted);font-style:italic}
+
+/* ==========================================================================
+   TERMINAL THEME — the rest of the site
+   The base stylesheet was written for one light theme, so a lot of colour is
+   spelled out literally (#fff panels, #4a5768 greys) and --navy does double
+   duty as both "dark background" and "emphasis text". In the terminal theme
+   --navy IS the background, so every place it was used as TEXT goes invisible.
+   These rules fix both classes of problem. They live at the end so they win on
+   source order without needing !important.
+   ========================================================================== */
+
+/* --- 1. things that used --navy / --navy-2 as text --- */
+[data-theme="terminal"] .linkbtn,
+[data-theme="terminal"] .ghostbtn,
+[data-theme="terminal"] .chips button:hover,
+[data-theme="terminal"] .tm .teamcell a:hover,
+[data-theme="terminal"] .h2h .teamcell a:hover,
+[data-theme="terminal"] .mv.new{color:var(--t-accent)}
+[data-theme="terminal"] .fgroup h3,
+[data-theme="terminal"] .filters-head h2{color:var(--t-accent)}
+[data-theme="terminal"] .asat-date,
+[data-theme="terminal"] .no1,
+[data-theme="terminal"] .tm .pos{color:var(--t-score)}
+[data-theme="terminal"] .tablehead>div:hover{color:var(--ink);background:#1c222c}
+[data-theme="terminal"] .tablehead>div.sorted{color:var(--t-accent)}
+[data-theme="terminal"] .playbtn{background:#243449;border-color:#33455e;color:#cfe3ff}
+[data-theme="terminal"] .playbtn:hover{background:#2d4159}
+[data-theme="terminal"] .spinner{border-color:var(--line);border-top-color:var(--t-accent)}
+[data-theme="terminal"] select:focus,
+[data-theme="terminal"] input:focus{outline-color:#2d4a6b;border-color:var(--t-accent)}
+[data-theme="terminal"] .chips button:hover,
+[data-theme="terminal"] .ghostbtn:hover{border-color:var(--t-accent)}
+
+/* --- 2. surfaces that were literally white or near-white --- */
+[data-theme="terminal"] .tablewrap,
+[data-theme="terminal"] .h2h .tablewrap,
+[data-theme="terminal"] .topline .card,
+[data-theme="terminal"] .splitcard{background:var(--panel)}
+[data-theme="terminal"] .trow:hover,
+[data-theme="terminal"] .h2h .trow:hover,
+[data-theme="terminal"] .sc .trow:hover{background:#161b22}
+[data-theme="terminal"] .sc .trow.flip{background:#141a22}
+[data-theme="terminal"] .sc .trow.flip:hover{background:#1a212b}
+[data-theme="terminal"] .segbtns{background:#0d1117;border-color:var(--line)}
+[data-theme="terminal"] .segbtns button{
+  background:#0d1117;color:var(--muted);border-right-color:var(--line);
+}
+[data-theme="terminal"] .segbtns button:hover{background:#1a212b;color:var(--ink)}
+[data-theme="terminal"] .chips button,
+[data-theme="terminal"] .ghostbtn{background:#0d1117;color:var(--muted)}
+[data-theme="terminal"] .segbtns button.on,
+[data-theme="terminal"] .chips button.on{
+  background:#243449;border-color:#33455e;color:#cfe3ff;font-weight:600;
+}
+[data-theme="terminal"] .rulenote{background:#131922;color:var(--t-meta)}
+[data-theme="terminal"] .rulebar{background:var(--panel)}
+[data-theme="terminal"] .dataerror code{background:#1c222c}
+[data-theme="terminal"] .slider::-webkit-slider-thumb{background:#0d1117;border-color:#9cdcfe}
+[data-theme="terminal"] .slider::-moz-range-thumb{background:#0d1117;border-color:#9cdcfe}
+[data-theme="terminal"] .slider{background:linear-gradient(90deg,#233045,#9cdcfe)}
+
+/* --- 3. the hardcoded greys --- */
+[data-theme="terminal"] .empty .sub,
+[data-theme="terminal"] .nodata,
+[data-theme="terminal"] .chartnote,
+[data-theme="terminal"] .mspan,
+[data-theme="terminal"] .note,
+[data-theme="terminal"] .sparse,
+[data-theme="terminal"] .lastmatches li span,
+[data-theme="terminal"] .tm .lastp,
+[data-theme="terminal"] .h2h .rk,
+[data-theme="terminal"] .sc .bd,
+[data-theme="terminal"] .h2h .date,
+[data-theme="terminal"] .sc .date,
+[data-theme="terminal"] .intro p{color:var(--t-meta)}
+[data-theme="terminal"] .mv.same{color:#4a5462}
+
+/* --- 4. the amber and blue call-outs --- */
+[data-theme="terminal"] .tag.rwc,
+[data-theme="terminal"] .tm .lastp .tag{
+  background:#2b2517;border-color:#5a4a26;color:#d3ad4a;
+}
+[data-theme="terminal"] .intro .warn{background:#2b2517;border-color:#5a4a26;color:#d8c188}
+[data-theme="terminal"] .eraref{background:#0b0f14}
+[data-theme="terminal"] .eraref table.mini tr.on td{background:#1c2432}
+[data-theme="terminal"] .h2h .score.restated,
+[data-theme="terminal"] .sc .restated,
+[data-theme="terminal"] .sc .score.restated,
+[data-theme="terminal"] .sc .flipmark{color:#7fb4e8}
+[data-theme="terminal"] .h2hhead .side.a .swins{color:#6aa9e8}
+[data-theme="terminal"] .leadbar .a{background:#3b6fa8}
+[data-theme="terminal"] .h2hhead .side.b .swins{color:#e0656b}
+[data-theme="terminal"] .leadbar .b{background:#a2434a}
+[data-theme="terminal"] .leadbar .d{background:#39414d}
+[data-theme="terminal"] .tm .lastp.dormant{color:#c08a4f}
+
+/* --- 5. the SVG chart --- */
+[data-theme="terminal"] .chartbox .grid{stroke:#1e242e}
+[data-theme="terminal"] .chartbox .lead{stroke:#9cdcfe}
+[data-theme="terminal"] .chartbox .cursor{fill:#0d1117;stroke:#9cdcfe}
+[data-theme="terminal"] .chartbox .axis{fill:var(--t-meta)}
+[data-theme="terminal"] .chartbox .endlabel{fill:var(--ink)}
+[data-theme="terminal"] .tip{background:#1c222c;border:1px solid var(--line)}
+[data-theme="terminal"] .tip .muted{color:var(--t-meta)}
+
+/* --- 6. the two-line header needs the two-line padding --- */
+.tablehead.fx>div{padding:0 6px;line-height:1.25}
+.tablehead.fx>div[data-key]{cursor:pointer}
+.tablehead.fx>div:not([data-key]){cursor:default}
+.tablehead.fx>div:not([data-key]):hover{background:none;color:inherit}
+.tablehead.fx .c-when,.tablehead.fx .c-venue,
+.tablehead.fx .c-comp,.tablehead.fx .c-crowd{
+  font-size:9px;color:var(--muted);opacity:.8;
 }

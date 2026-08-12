@@ -13,6 +13,8 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231f3864'/%3E%3Cellipse cx='16' cy='16' rx='11' ry='7' transform='rotate(-35 16 16)' fill='none' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M11 21 L21 11' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M13.5 16.5 L15.5 18.5 M16.5 13.5 L18.5 15.5' stroke='%23fff' stroke-width='1.6'/%3E%3C/svg%3E">
 <title>Rugby Archive — Score Normalisation</title>
 <link rel="stylesheet" href="assets/styles.css">
+<!-- loaded here, not at the foot, so the theme is set before the first paint -->
+<script src="assets/theme.js"></script>
 </head>
 <body>
 
@@ -25,6 +27,7 @@
       <a href="head-to-head.html">Head to Head</a>
       <a href="scoring.html" class="here">Score Normalisation</a>
     </nav>
+      <div class="themeswitch" id="themeswitch"><button type="button" data-theme="terminal" class="on">Terminal</button><button type="button" data-theme="light">Light</button></div>
   </div>
   <div class="buildinfo" id="buildinfo"></div>
 </header>

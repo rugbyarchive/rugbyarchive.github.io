@@ -292,17 +292,28 @@ function esc(s) {
 }
 
 // ----------------------------------------------------------------- render
+/* THE ROW IS ALWAYS TWO LINES.
+   Line 1 is the fixture, mirrored around the dash. Line 2 carries when, where,
+   what competition and how many watched, in three slots that line up down the
+   whole page so each can be scanned as a column.
+   It is always two lines even when line 2 is empty, because a row that
+   sometimes has one line and sometimes two gives the table two different row
+   heights - and the virtual table below computes scroll position from ONE
+   fixed height. That is the same trap the drawer has to avoid, which is why
+   the drawer is a fixed height too. */
 var COLS = [
-  { key: "date",   label: "Date",        cls: "date" },
-  { key: "dow",    label: "Day",         cls: "" },
-  { key: "home",   label: "Home",        cls: "" },
-  { key: "",       label: "Score",       cls: "score", nosort: true },
-  { key: "away",   label: "Away",        cls: "" },
-  { key: "result", label: "Res",         cls: "" },
-  { key: "margin", label: "Marg",        cls: "num" },
-  { key: "comp",   label: "Competition", cls: "" },
-  { key: "venue",  label: "Venue",       cls: "" },
-  { key: "row",    label: "Rank H/A",    cls: "rk", nosort: true }
+  { key: "date",   label: "Date",    cls: "c-date" },
+  { key: "home",   label: "Home",    cls: "c-home" },
+  { key: "margin", label: "Score",   cls: "c-sc", tip: "Sort by winning margin" },
+  { key: "away",   label: "Away",    cls: "c-away" },
+  { key: "",       label: "Tags",    cls: "c-tag", nosort: true },
+  { key: "",       label: "",        cls: "c-exp", nosort: true },
+  /* line two carries its own labels, so the reader knows what the small
+     grey text under each fixture actually is */
+  { key: "",       label: "Day",         cls: "c-when",  nosort: true },
+  { key: "",       label: "Venue",       cls: "c-venue", nosort: true },
+  { key: "",       label: "Competition", cls: "c-comp",  nosort: true },
+  { key: "",       label: "Crowd",       cls: "c-crowd", nosort: true }
 ];
 
 var head = document.getElementById("tablehead");
@@ -310,62 +321,218 @@ var wrap = document.getElementById("tablewrap");
 var spacer = document.getElementById("tablespacer");
 var bodyEl = document.getElementById("tablebody");
 var emptyEl = document.getElementById("empty");
-var ROW_H = 34;
+var ROW_H = 37;
+var DRAWER_H = 132;
 var view = [];
+var open = {};                 // data-row index -> true. Survives re-filtering.
+
+function flag(name) {
+  return window.RUGBY_FLAGS ? window.RUGBY_FLAGS.svg(name) : "";
+}
 
 function drawHead() {
+  head.className = "tablehead fx";
   head.innerHTML = COLS.map(function (c) {
     var on = !c.nosort && c.key && S.sort === c.key;
-    return '<div data-key="' + c.key + '" class="' + (on ? "sorted" : "") + '">' +
-      esc(c.label) + (on ? ' <span class="arrow">' + (S.dir < 0 ? "▼" : "▲") +
+    return '<div class="' + c.cls + (on ? " sorted" : "") + '"' +
+      (c.key ? ' data-key="' + c.key + '"' : "") +
+      (c.tip ? ' title="' + esc(c.tip) + '"' : "") + ">" + esc(c.label) +
+      (on ? ' <span class="arrow">' + (S.dir < 0 ? "▼" : "▲") +
       "</span>" : "") + "</div>";
   }).join("");
 }
 
-function rowHTML(i) {
+/* Everything line 2 knows about a match, as one object, so the row builder
+   and the drawer cannot disagree about what exists. */
+function context(r) {
+  var stad = r[F.stadium] !== null ? LK.stadium[r[F.stadium]] : null;
+  var city = r[F.city] !== null ? LK.city[r[F.city]] : null;
+  var venue = stad && city ? stad + ", " + city : (stad || city ||
+              (r[F.country] !== null ? LK.country[r[F.country]] : null));
+  return {
+    venue: venue,
+    stadium: stad, city: city,
+    country: r[F.country] !== null ? LK.country[r[F.country]] : null,
+    comp: r[F.competition] !== null ? LK.competition[r[F.competition]] : null,
+    trophy: r[F.trophy] !== null ? LK.trophy[r[F.trophy]] : null,
+    type: r[F.match_type] !== null ? LK.match_type[r[F.match_type]] : null,
+    crowd: r[F.attendance]
+  };
+}
+function hasDetail(r, i) {
+  var c = context(r);
+  return !!(c.venue || c.comp || c.trophy || c.crowd || BREAK[i]);
+}
+
+function rowHTML(i, k) {
   var r = ROWS[i];
-  var t = S.teamI;
-  var res = outcome(r);
-  var hw = r[F.home_score] > r[F.away_score];
-  var aw = r[F.away_score] > r[F.home_score];
-  var venue = r[F.stadium] !== null ? LK.stadium[r[F.stadium]]
-            : (r[F.city] !== null ? LK.city[r[F.city]]
-            : (r[F.country] !== null ? LK.country[r[F.country]] : "—"));
-  var comp = r[F.competition] !== null ? LK.competition[r[F.competition]] : "—";
+  var hs = r[F.home_score], as = r[F.away_score];
+  var hw = hs > as, aw = as > hs;
+  var c = context(r);
+  var hr = r[F.home_rank_before], ar = r[F.away_rank_before];
   var tags = (r[F.world_cup] ? '<span class="tag rwc">RWC</span>' : "") +
              (r[F.neutral] ? '<span class="tag">N</span>' : "");
+  /* 167 dates in the archive are typed as text and could genuinely mean two
+     different days. Printing "Saturday" on those states something the data
+     cannot support, so they show the date alone. */
+  var when = r[F.date_guessed] ? "" : DAYS[DOW[i]];
+  var isOpen = !!open[i];
+  return '<div class="trow fx' + (isOpen ? " open" : "") + '" data-i="' + i + '">' +
+    '<div class="c-date">' + r[F.date] + "</div>" +
+    '<div class="c-when">' + esc(when) + "</div>" +
+    /* Each side is ONE cell, not three, so the flag and the ranking sit hard
+       against the name however short the name is. Three separate grid columns
+       left "(207)" and the flag stranded at the far left of a 1fr column. */
+    '<div class="c-home ' + (hw ? "win" : (aw ? "loserside" : "")) + '">' +
+      '<span class="fg">' + flag(homeName(r)) + "</span>" +
+      '<span class="rk">' + (hr === null ? "" : "(" + hr + ")") + "</span>" +
+      '<span class="nm" title="' + esc(homeName(r)) + '">' +
+        esc(homeName(r)) + "</span></div>" +
+    '<div class="c-sc">' + hs + " – " + as + "</div>" +
+    '<div class="c-away ' + (aw ? "win" : (hw ? "loserside" : "")) + '">' +
+      '<span class="nm" title="' + esc(awayName(r)) + '">' +
+        esc(awayName(r)) + "</span>" +
+      '<span class="rk">' + (ar === null ? "" : "(" + ar + ")") + "</span>" +
+      '<span class="fg">' + flag(awayName(r)) + "</span></div>" +
+    '<div class="c-tag">' + tags + "</div>" +
+    '<div class="c-exp">' + (hasDetail(r, i)
+      ? '<button type="button" class="expbtn" data-exp="' + i +
+        '" aria-expanded="' + isOpen + '" title="Show the detail">' +
+        (isOpen ? "−" : "+") + "</button>"
+      : "") + "</div>" +
+    '<div class="c-venue" title="' + esc(c.venue || "") + '">' +
+      esc(c.venue || "") + "</div>" +
+    '<div class="c-comp" title="' + esc(c.comp || "") + '">' +
+      esc(c.comp || "") + "</div>" +
+    '<div class="c-crowd">' + (c.crowd ? fmtNum(c.crowd) : "") + "</div>" +
+    "</div>" + (isOpen ? drawerHTML(i) : "");
+}
+
+/* ------------------------------------------------------------- the drawer */
+var SC = D.scoring || null;
+var BREAK = D.breakdowns || {};
+var BO = (SC && SC.breakdown_order) || [];
+var HALF = BO.length ? BO.length / 2 : 6;
+var BD_HEAD = ["Tries", "Conv", "Pen", "Drop", "Mark", "Pen try"];
+
+function valuesFor(year) {
+  var v = SC.rows[0].slice(1), i;
+  for (i = 0; i < SC.rows.length; i++) if (year >= SC.rows[i][0]) v = SC.rows[i].slice(1);
+  return v;
+}
+function pointsFrom(counts, v) {
+  var t = 0, n = Math.min(counts.length, v.length), i;
+  for (i = 0; i < n; i++) t += counts[i] * v[i];
+  return t;
+}
+
+function scoringBlock(r, i) {
+  var b = BREAK[i];
+  if (!b || !SC) {
+    return '<div><h4>Scoring</h4><p class="none">No try-and-kick breakdown ' +
+      "recorded for this match.</p></div>";
+  }
+  var y = +r[F.date].slice(0, 4);
+  var era = valuesFor(y), latest = SC.rows[SC.rows.length - 1];
+  var sides = [
+    { name: homeName(r), counts: b.slice(0, HALF), got: r[F.home_score] },
+    { name: awayName(r), counts: b.slice(HALF), got: r[F.away_score] }
+  ];
+  var head = "<tr><th>Scoring</th>" + BD_HEAD.slice(0, HALF).map(function (h) {
+    return "<th>" + h + "</th>";
+  }).join("") + "<th>Total</th><th>Adds up?</th></tr>";
+  var body = sides.map(function (s) {
+    var calc = pointsFrom(s.counts, era);
+    var ok = calc === s.got;
+    return "<tr><td>" + esc(s.name) + "</td>" +
+      s.counts.map(function (n) { return "<td>" + (n || "·") + "</td>"; }).join("") +
+      '<td class="tot">' + s.got + "</td>" +
+      '<td class="' + (ok ? "ok" : "bad") + '">' +
+      (ok ? "✓" : "≠ " + calc) + "</td></tr>";
+  }).join("");
+  var rest = '<tr class="restate"><td>under ' + latest[0] + " rules</td>" +
+    '<td colspan="' + HALF + '"></td><td class="tot">' +
+    pointsFrom(sides[0].counts, latest.slice(1)) + " – " +
+    pointsFrom(sides[1].counts, latest.slice(1)) + "</td><td></td></tr>";
+  return "<div><table>" + head + body + rest + "</table></div>";
+}
+
+function drawerHTML(i) {
+  var r = ROWS[i], c = context(r);
   var hr = r[F.home_rank_before], ar = r[F.away_rank_before];
-  return '<div class="trow">' +
-    '<div class="date">' + fmtDate(r[F.date]) + "</div>" +
-    "<div>" + DAYS3[DOW[i]] + "</div>" +
-    '<div class="' + (hw ? "winner" : "") + '">' + esc(homeName(r)) + "</div>" +
-    '<div class="score">' + r[F.home_score] + "–" + r[F.away_score] + "</div>" +
-    '<div class="' + (aw ? "winner" : "") + '">' + esc(awayName(r)) + "</div>" +
-    '<div><span class="res ' + res + '">' + res + "</span></div>" +
-    '<div class="num">' + r[F.margin] + "</div>" +
-    '<div title="' + esc(comp) + '">' + esc(comp) + tags + "</div>" +
-    '<div title="' + esc(venue) + '">' + esc(venue) + "</div>" +
-    '<div class="rk">' + (hr === null ? "–" : hr) + " / " +
-      (ar === null ? "–" : ar) + "</div>" +
-    "</div>";
+  var hR = r[F.home_rating_before], aR = r[F.away_rating_before];
+  function dd(label, val) {
+    return val ? "<dt>" + label + "</dt><dd>" + esc(String(val)) + "</dd>" : "";
+  }
+  var rank = (hr === null || ar === null) ? "" :
+    homeName(r) + " #" + hr + (hR === null ? "" : " (" + hR.toFixed(2) + ")") +
+    "  ·  " + awayName(r) + " #" + ar +
+    (aR === null ? "" : " (" + aR.toFixed(2) + ")");
+  return '<div class="drawer">' + scoringBlock(r, i) +
+    "<div><h4>Match</h4><dl>" +
+      dd("Competition", c.comp) + dd("Trophy", c.trophy) +
+      dd("Venue", c.venue) + dd("Country", c.country) +
+      dd("Crowd", c.crowd ? fmtNum(c.crowd) : null) +
+      dd("Type", c.type) +
+      dd("Ranked", r[F.eligible] ? "counts towards the rankings"
+                                 : "not ranking-eligible") +
+      dd("Before", rank) +
+      dd("Source", "spreadsheet row " + r[F.excel_row]) +
+    "</dl></div></div>";
+}
+
+/* ------------------------------------------- virtual list, variable height
+   Only rows the reader has opened are taller, and always by exactly
+   DRAWER_H, so the offset of row k is k*ROW_H plus DRAWER_H for each open
+   row above it. `openAt` is the sorted list of open positions in the current
+   view; it is tiny, so a linear scan beats anything cleverer.            */
+var openAt = [];
+function reindexOpen() {
+  openAt = [];
+  for (var k = 0; k < view.length; k++) if (open[view[k]]) openAt.push(k);
+}
+function openBefore(k) {
+  var n = 0;
+  for (var j = 0; j < openAt.length && openAt[j] < k; j++) n++;
+  return n;
+}
+function yOf(k) { return k * ROW_H + openBefore(k) * DRAWER_H; }
+function totalH() { return view.length * ROW_H + openAt.length * DRAWER_H; }
+function firstAt(y) {
+  var lo = 0, hi = view.length;
+  while (lo < hi) {
+    var mid = (lo + hi) >> 1;
+    if (yOf(mid) < y) lo = mid + 1; else hi = mid;
+  }
+  return Math.max(0, lo - 1);
 }
 
 function paint() {
   var top = wrap.scrollTop;
-  var first = Math.max(0, Math.floor(top / ROW_H) - 6);
-  var count = Math.ceil(wrap.clientHeight / ROW_H) + 12;
-  var last = Math.min(view.length, first + count);
-  var html = "";
-  for (var k = first; k < last; k++) html += rowHTML(view[k]);
-  bodyEl.style.transform = "translateY(" + (first * ROW_H) + "px)";
+  var first = Math.max(0, firstAt(top) - 4);
+  var yTop = yOf(first);
+  var html = "", k = first, y = yTop;
+  var limit = yTop + wrap.clientHeight + ROW_H * 10;
+  while (k < view.length && y < limit) {
+    html += rowHTML(view[k], k);
+    y += ROW_H + (open[view[k]] ? DRAWER_H : 0);
+    k++;
+  }
+  bodyEl.style.transform = "translateY(" + yTop + "px)";
   bodyEl.innerHTML = html;
 }
 
 function renderTable() {
-  spacer.style.height = (view.length * ROW_H) + "px";
+  reindexOpen();
+  spacer.style.height = totalH() + "px";
   emptyEl.hidden = view.length > 0;
-  if (wrap.scrollTop > view.length * ROW_H) wrap.scrollTop = 0;
+  if (wrap.scrollTop > totalH()) wrap.scrollTop = 0;
   paint();
+}
+
+function toggleRow(i) {
+  if (open[i]) delete open[i]; else open[i] = true;
+  renderTable();
 }
 
 function setText(id, v) { document.getElementById(id).textContent = v; }
@@ -478,6 +645,11 @@ function refresh() {
   document.getElementById("perf").textContent = ms.toFixed(1) + " ms";
   writeHash();
 }
+
+
+/* The theme switch lives in assets/theme.js, loaded from the <head> of every
+   page. It used to live here, which meant it only ran on this page - the
+   other three drew the buttons and wired them to nothing. */
 
 // ------------------------------------------------------------------- wire
 function fill(sel, values, placeholder) {
@@ -608,6 +780,15 @@ function init() {
     refresh();
   });
 
+  /* One listener on the body, not one per button: the table repaints
+     constantly, so per-row listeners would be attached and thrown away
+     thousands of times a minute. */
+  bodyEl.addEventListener("click", function (e) {
+    var btn = e.target.closest ? e.target.closest("[data-exp]") : null;
+    if (!btn) return;
+    toggleRow(+btn.getAttribute("data-exp"));
+  });
+
   head.addEventListener("click", function (e) {
     var d = e.target.closest("[data-key]"); if (!d) return;
     var key = d.dataset.key; if (!key) return;
@@ -723,11 +904,20 @@ window.addEventListener("hashchange", function () {
 
 // -------------------------------------------------------------- CSV out
 function exportCSV() {
+  /* The export always contains every column for every filtered match, one row
+     per match, whatever is open on screen. Expanding a row is a view state,
+     never a data state - so the drawer's contents are columns here, not extra
+     rows. */
+  var bdHead = [];
+  ["Home", "Away"].forEach(function (side) {
+    BD_HEAD.slice(0, HALF).forEach(function (h) { bdHead.push(side + " " + h); });
+  });
   var head = ["Date", "Day", "Home", "Home Score", "Away Score", "Away",
               "Result (" + (S.team || "home") + ")", "Margin", "Competition",
-              "Match Type", "Stadium", "City", "Country", "Neutral",
-              "World Cup", "Counts for rankings", "Home rank before",
-              "Away rank before", "Excel row"];
+              "Trophy", "Match Type", "Stadium", "City", "Country", "Attendance",
+              "Neutral", "World Cup", "Counts for rankings", "Home rank before",
+              "Home rating before", "Away rank before", "Away rating before"]
+             .concat(bdHead, ["Excel row"]);
   var out = [head.join(",")];
   function q(v) {
     if (v === null || v === undefined) return "";
@@ -736,18 +926,31 @@ function exportCSV() {
   }
   for (var k = 0; k < view.length; k++) {
     var i = view[k], r = ROWS[i];
-    out.push([r[F.date], DAYS[DOW[i]], homeName(r), r[F.home_score],
+    /* 167 dates are typed as text in the workbook and could mean two different
+       days, so the table prints no weekday for them. The export must not
+       assert what the table refuses to. */
+    var b = BREAK[i] || [];
+    var bd = [];
+    for (var c2 = 0; c2 < HALF * 2; c2++) {
+      bd.push(b.length > c2 ? b[c2] : "");
+    }
+    out.push([r[F.date], r[F.date_guessed] ? "" : DAYS[DOW[i]],
+      homeName(r), r[F.home_score],
       r[F.away_score], awayName(r), outcome(r), r[F.margin],
       r[F.competition] === null ? "" : LK.competition[r[F.competition]],
+      r[F.trophy] === null ? "" : LK.trophy[r[F.trophy]],
       r[F.match_type] === null ? "" : LK.match_type[r[F.match_type]],
       r[F.stadium] === null ? "" : LK.stadium[r[F.stadium]],
       r[F.city] === null ? "" : LK.city[r[F.city]],
       r[F.country] === null ? "" : LK.country[r[F.country]],
+      r[F.attendance] === null ? "" : r[F.attendance],
       r[F.neutral] ? "TRUE" : "FALSE", r[F.world_cup] ? "TRUE" : "FALSE",
       r[F.eligible] ? "TRUE" : "FALSE",
       r[F.home_rank_before] === null ? "" : r[F.home_rank_before],
+      r[F.home_rating_before] === null ? "" : r[F.home_rating_before],
       r[F.away_rank_before] === null ? "" : r[F.away_rank_before],
-      r[F.excel_row]].map(q).join(","));
+      r[F.away_rating_before] === null ? "" : r[F.away_rating_before]]
+      .concat(bd, [r[F.excel_row]]).map(q).join(","));
   }
   var blob = new Blob(["﻿" + out.join("\r\n")],
                       { type: "text/csv;charset=utf-8" });
