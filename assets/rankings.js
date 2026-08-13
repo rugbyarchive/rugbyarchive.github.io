@@ -69,7 +69,10 @@ var DAY_FIRST = isoToDay(D.first_match);
 var DAY_LAST = isoToDay(D.last_match);
 
 // ------------------------------------------------------------------- state
-var S = { mode: "official", lions: "1", compare: "", find: "", dormant: "show",
+/* lions defaults to "0" - EXCLUDED - because that is what World Rugby
+   actually does. Their published ratings do not move across Lions Tests.
+   The "counted" view is kept as a what-if, not as the headline table. */
+var S = { mode: "official", lions: "0", compare: "", find: "", dormant: "show",
           day: DAY_LAST, sort: "rank", dir: 1 };
 var DORMANT_DAYS = 365 * 4;   // no match in four years
 
