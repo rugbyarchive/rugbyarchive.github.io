@@ -20,6 +20,14 @@ if (!D || window.__dataFailed) {
 }
 
 var TEAMS = D.teams;
+
+/* Teams that rank in THIS archive but not with World Rugby. The owner's
+   rankings deliberately include every side that fields a national team, so a
+   reader has to be able to see which positions are his and which are
+   orthodox. Badged in the table, and nowhere else - the Super Filter stays
+   clean, which is what he asked for. */
+var OWN = {};
+(D.own_inclusion || []).forEach(function (i) { OWN[i] = 1; });
 var M = D.matches;                 // [dayNumber, home, away, hs, as]
 var SETS = D.sets;
 var ORDER = D.order;
@@ -181,7 +189,10 @@ function rowHTML(x) {
     '<div class="num pos">' + x.rank + "</div>" +
     '<div class="num">' + movement(x.move) + "</div>" +
     '<div class="teamcell"><a href="' + link + '" title="See every ' +
-      esc(x.name) + " match in the Super Filter\">" + esc(x.name) + "</a></div>" +
+      esc(x.name) + " match in the Super Filter\">" + esc(x.name) + "</a>" +
+      (OWN[x.id] ? '<span class="ownflag" title="Ranked here but not a World '
+        + 'Rugby member union - this position exists in this archive only">'
+        + "\u2022</span>" : "") + "</div>" +
     '<div class="num rating">' + x.rating.toFixed(2) + "</div>" +
     '<div class="num ' + (x.chg > 0 ? "up" : (x.chg < 0 ? "down" : "")) + '">' +
       (x.chg === null ? "–" : (x.chg > 0 ? "+" : "") + x.chg.toFixed(2)) +

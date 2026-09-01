@@ -5,9 +5,13 @@
   --navy:#1f3864;
   --navy-2:#2f4d80;
   --ink:#16202e;
-  --muted:#66748a;
-  --line:#dfe4ec;
-  --line-soft:#eef1f6;
+  --muted:#616f85;       /* 4.76:1 on the page background. Was #66748a,
+                            which is 4.43:1 - fine on a navy topbar, just
+                            under AA once the topbar became the page. */
+  --line:#c5cedc;        /* 1.59:1 on white. Was #dfe4ec at 1.28:1, which  */
+                         /* was borderline on cards and far too weak once   */
+                         /* it became the only thing under the header.      */
+  --line-soft:#e7ebf2;   /* row separators - quieter on purpose            */
   --bg:#f6f7fa;
   --panel:#ffffff;
   --win:#2e7d5b;
@@ -27,6 +31,10 @@
   --t-rank:#7a5c9e;
   --t-meta:#66748a;
   --t-accent:#1f3864;
+  /* Kept defined but DELIBERATELY UNUSED. The whole site is monospace in both
+     themes (see body). If you find yourself reaching for this, you are about
+     to reintroduce the terminal/light typeface split that was removed on
+     26 Aug 2026 - don't, unless the decision is being reversed on purpose. */
   --sans:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
   --mono:"Cascadia Mono",Consolas,"SF Mono",Menlo,monospace;
 }
@@ -37,19 +45,33 @@
 [hidden]{display:none !important}
 html,body{height:100%}
 body{
-  margin:0;font-family:var(--sans);color:var(--ink);background:var(--bg);
-  font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;
+  /* ONE TYPEFACE FOR BOTH THEMES. Monospace was chosen because nearly every
+     value on this site is a number and mono aligns digits down a column - and
+     that argument does not stop being true when the palette gets lighter.
+     13px rather than 14px because a monospace face at the same nominal size
+     is materially wider, and the fixture grid's column widths were tuned at
+     13. Change one without the other and the row overflows.
+     Do NOT reintroduce a per-theme font rule: the two themes are one design
+     in two palettes. */
+  margin:0;font-family:var(--mono);color:var(--ink);background:var(--bg);
+  font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased;
 }
 h1,h2,h3{margin:0;font-weight:650;letter-spacing:-.01em}
 
 /* ---------------------------------------------------------------- topbar */
+/* The header sits ON the page rather than being a band across the top of it,
+   in BOTH themes - one uniform background, separated by a rule. It used to be
+   a navy bar with white text, which only ever suited the light theme and made
+   the two themes look like different products.
+   Everything here is a token, so neither theme owns the header any more. */
 .topbar{
   display:flex;align-items:baseline;justify-content:space-between;gap:24px;
-  padding:14px 22px;background:var(--navy);color:#fff;
+  padding:14px 22px;background:var(--bg);color:var(--ink);
+  border-bottom:1px solid var(--line);
 }
-.topbar h1{font-size:19px;letter-spacing:.02em}
-.tagline{margin:2px 0 0;font-size:12.5px;color:#c3cee4}
-.buildinfo{font-size:11.5px;color:#a9b8d6;text-align:right;white-space:nowrap}
+.topbar h1{font-size:19px;letter-spacing:.02em;color:var(--t-accent)}
+.tagline{margin:2px 0 0;font-size:12.5px;color:var(--muted)}
+.buildinfo{font-size:11.5px;color:var(--muted);text-align:right;white-space:nowrap}
 
 /* --------------------------------------------------------------- loading */
 .loading,.dataerror{
@@ -102,7 +124,8 @@ main{
 .sparse{font-style:normal;color:#98a3b5;font-weight:400}
 select,input[type=number],input[type=text],input:not([type]){
   width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:5px;
-  font:inherit;font-size:13px;background:#fff;color:var(--ink);
+  font:inherit;font-family:var(--mono);font-size:13px;
+  background:#fff;color:var(--ink);
 }
 select:focus,input:focus{outline:2px solid #b9c9e6;outline-offset:-1px;border-color:var(--navy-2)}
 .rangerow .rangepair{display:flex;align-items:center;gap:6px}
@@ -262,7 +285,13 @@ select:focus,input:focus{outline:2px solid #b9c9e6;outline-offset:-1px;border-co
 @media (max-width:860px){
   main{grid-template-columns:1fr;height:auto}
   .filters{border-right:0;border-bottom:1px solid var(--line)}
-  .tablewrap{height:60vh}
+  /* THE TABLE MUST KEEP A DEFINITE HEIGHT. paint() sizes the visible window
+     from wrap.clientHeight, so if this box is allowed to grow to its content
+     the "visible" window becomes the whole table and every row is built into
+     the DOM - 10,128 of them. It still LOOKS right, which is why it went
+     unnoticed; it just makes a phone crawl. flex:0 0 auto stops flex-grow
+     from overriding the height. */
+  .tablewrap{flex:0 0 auto;height:60vh}
 }
 
 /* =====================================================================
@@ -270,11 +299,11 @@ select:focus,input:focus{outline:2px solid #b9c9e6;outline-offset:-1px;border-co
    ===================================================================== */
 .mainnav{display:flex;gap:16px;margin-top:4px}
 .mainnav a{
-  color:#c3cee4;text-decoration:none;font-size:12.5px;padding:2px 0;
+  color:var(--muted);text-decoration:none;font-size:12.5px;padding:2px 0;
   border-bottom:2px solid transparent;
 }
-.mainnav a:hover{color:#fff}
-.mainnav a.here{color:#fff;border-bottom-color:#8fb0e8;font-weight:600}
+.mainnav a:hover{color:var(--ink)}
+.mainnav a.here{color:var(--ink);border-bottom-color:var(--t-accent);font-weight:600}
 
 main.tm{display:block;height:auto;min-height:calc(100vh - 62px)}
 
@@ -362,7 +391,7 @@ main.tm{display:block;height:auto;min-height:calc(100vh - 62px)}
 .tm .rating{font-family:var(--mono);font-size:12px}
 .tm .lastp{font-size:11px;color:#8b97a9;font-family:var(--mono)}
 .tm .lastp.dormant{color:#b58a5a}
-.tm .lastp .tag{font-family:var(--sans);border-color:#e0cdb0;background:#fdf6ea;
+.tm .lastp .tag{border-color:#e0cdb0;background:#fdf6ea;
   color:#96702f;font-size:9px}
 .tm .teamcell a{color:var(--ink);text-decoration:none}
 .tm .teamcell a:hover{color:var(--navy-2);text-decoration:underline}
@@ -428,8 +457,8 @@ main.h2h{display:block;height:auto;min-height:calc(100vh - 62px);padding-bottom:
 .chartbox .grid{stroke:#eef1f6;stroke-width:1}
 .chartbox .zero{stroke-width:1.5;stroke-dasharray:3 3}
 .chartbox .lead{fill:none;stroke:#16202e;stroke-width:2;stroke-linejoin:round}
-.chartbox .axis{font-size:10px;fill:#9aa5b6;font-family:var(--sans)}
-.chartbox .endlabel{font-size:11.5px;fill:#4a5768;font-weight:600;font-family:var(--sans)}
+.chartbox .axis{font-size:10px;fill:#9aa5b6;font-family:var(--mono)}
+.chartbox .endlabel{font-size:11.5px;fill:#4a5768;font-weight:600;font-family:var(--mono)}
 .chartbox .cursor{fill:#fff;stroke:#16202e;stroke-width:2}
 .chartbox .hit{cursor:crosshair}
 .tip{
@@ -552,8 +581,16 @@ main.sc{display:block;height:auto;min-height:calc(100vh - 62px)}
   --navy-2:#161b22;
   --ink:#c9d1d9;          /* primary text            */
   --muted:#7d8794;        /* metadata, labels        */
-  --line:#242a33;
-  --line-soft:#1a1f27;
+  /* Borders, lifted 13 Aug -> 26 Aug. These were #242a33 and #1a1f27, which
+     is 1.26:1 and 1.10:1 against the panel - below the ~1.6:1 an edge needs
+     to read as deliberate at all, so the cards had effectively no outline.
+     The light theme's border sits at the same 1.28:1 and looks fine, which
+     is the trap: an identical ratio survives on white and vanishes on black.
+     Judge dark-theme edges by eye against the panel, not by parity with the
+     light theme. */
+  --line:#3a4657;        /* 1.90:1 on panel - card and panel edges  */
+  --line-soft:#262f3b;   /* 1.34:1 - row separators, deliberately   */
+                         /* quieter or 10,128 rows become a ladder  */
   --bg:#0d1117;
   --panel:#11161d;
   --win:#4fb477;
@@ -570,12 +607,6 @@ main.sc{display:block;height:auto;min-height:calc(100vh - 62px)}
   --t-meta:#868f9c;       /* muted, for venue and competition  */
   --t-accent:#ce9178;     /* string orange, for highlights     */
 }
-[data-theme="terminal"] body{font-family:var(--mono);font-size:13px}
-[data-theme="terminal"] .topbar{border-bottom:1px solid var(--line)}
-[data-theme="terminal"] .topbar h1{color:var(--t-accent)}
-[data-theme="terminal"] .mainnav a{color:var(--muted)}
-[data-theme="terminal"] .mainnav a.here,
-[data-theme="terminal"] .mainnav a:hover{color:var(--ink)}
 [data-theme="terminal"] .tablewrap,
 [data-theme="terminal"] .card{background:var(--panel)}
 [data-theme="terminal"] .tablehead{background:#161b22;color:var(--muted)}
@@ -591,20 +622,17 @@ main.sc{display:block;height:auto;min-height:calc(100vh - 62px)}
 [data-theme="terminal"] .drawer{background:#0b0f14}
 
 /* ------------------------------------------------------- the theme switch */
+/* No [data-theme="terminal"] block for the header any more: the base rules
+   are all tokens, so both themes get the same header from the same code. */
 .themeswitch{
-  display:inline-flex;border:1px solid rgba(255,255,255,.28);border-radius:5px;
+  display:inline-flex;border:1px solid var(--line);border-radius:5px;
   overflow:hidden;margin-left:14px;vertical-align:middle;
 }
 .themeswitch button{
-  background:none;border:0;color:#c3cee4;font:inherit;font-size:10.5px;
+  background:none;border:0;color:var(--muted);font:inherit;font-size:10.5px;
   letter-spacing:.05em;text-transform:uppercase;padding:3px 9px;cursor:pointer;
 }
-.themeswitch button.on{background:rgba(255,255,255,.16);color:#fff}
-[data-theme="terminal"] .themeswitch{border-color:var(--line)}
-[data-theme="terminal"] .themeswitch button{color:var(--muted)}
-[data-theme="terminal"] .themeswitch button.on{
-  background:var(--line);color:var(--t-accent);
-}
+.themeswitch button.on{background:var(--line);color:var(--t-accent)}
 
 /* ==========================================================================
    THE TWO-LINE MATCH ROW
@@ -811,4 +839,176 @@ main.sc{display:block;height:auto;min-height:calc(100vh - 62px)}
 .tablehead.fx .c-when,.tablehead.fx .c-venue,
 .tablehead.fx .c-comp,.tablehead.fx .c-crowd{
   font-size:9px;color:var(--muted);opacity:.8;
+}
+
+/* ==========================================================================
+   PHONES
+   At 390px the desktop fixture row is 592px wide with a hard minimum, so the
+   whole document rendered 743px against a 390px viewport - the page scrolled
+   sideways and the header stats were clipped mid-number. Two rules matter
+   here and both are easy to break later:
+
+   1. --row-h and --drawer-h are read by app.js, which computes every scroll
+      offset arithmetically. Change one without the other and rows silently
+      overlap. app.js re-reads them on resize, so changing them HERE is safe
+      and changing them in JS is not.
+   2. The fixture becomes three lines instead of two: date, then the fixture
+      itself, then venue and competition. The mirrored layout survives - it
+      just gets its own line - and the ranks drop, because "(207)" costs
+      40px that the team names need more.
+   ========================================================================== */
+@media (max-width:700px){
+  :root{ --row-h:56px; --drawer-h:260px; }
+
+  /* the top bar: let the stats wrap under the title instead of running off */
+  .topbar{flex-wrap:wrap;gap:4px 14px;padding:10px 14px}
+  .buildinfo{text-align:left;white-space:normal;font-size:10.5px;line-height:1.35}
+  /* the source filename is three words of noise on a 390px screen; the build
+     timestamp beside it is not, so only the filename goes */
+  .buildinfo .fromwb{display:none}
+  .topbar h1{font-size:17px}
+  .mainnav{gap:12px;flex-wrap:wrap}
+
+  /* Filters collapse behind a button. Previously you scrolled ~1,700px of
+     filter panel before the first match appeared, which on a phone reads as
+     an empty site. */
+  main{grid-template-columns:1fr;height:auto}
+  .filters{
+    border-right:0;border-bottom:1px solid var(--line);
+    max-height:70vh;overflow-y:auto;
+  }
+  body:not(.filters-open) .filters{display:none}
+  .filterbar{
+    display:flex;align-items:center;gap:10px;
+    padding:8px 14px;background:var(--panel);
+    border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;
+  }
+  .filterbar .ghostbtn{font-size:13px;padding:7px 14px}
+  .filterbar .fcount{font-size:12px;color:var(--muted)}
+  .tablewrap{flex:0 0 auto;height:66vh}   /* definite height - see above */
+  /* The aggregates are the best thing on this page on a desktop and the
+     worst thing on a phone - they pushed the first match roughly a screen
+     and a half down. Collapsed by default, one tap away. The match count
+     still shows on the bar below, so nothing is lost silently. */
+  body:not(.stats-open) .analysis{display:none}
+  .analysis{padding:10px 14px}
+  .cards{grid-template-columns:1fr;gap:8px}
+  .card.wide{grid-column:span 1}
+  /* the played/won/drawn/lost row clipped its last two figures at this width */
+  .wdl{flex-wrap:wrap;gap:6px 16px}
+  .wdl b{font-size:17px}
+  .records li{font-size:12px}
+  .records b{text-align:right;min-width:0}
+  .tablebar{padding:8px 14px;gap:8px;flex-wrap:wrap}
+
+  /* ---- the three-line fixture row ---- */
+  .tablehead.fx,.trow.fx{
+    grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto 30px;
+    grid-template-rows:17px 23px 16px;
+  }
+  .trow.fx>div{padding:0 4px}
+  .fx .c-date {grid-area:1/1/2/3;font-size:11px}
+  .fx .c-when {grid-area:1/3/2/4;font-size:10px;text-align:left}
+  .fx .c-tag  {grid-area:1/4/2/5;text-align:right}
+  /* the +/- spans all three lines, which makes it a 56px tap target */
+  .fx .c-exp  {grid-area:1/5/4/6;display:flex;align-items:center;
+               justify-content:center}
+  .fx .c-home {grid-area:2/1/3/2;justify-content:flex-end}
+  .fx .c-sc   {grid-area:2/2/3/3;font-size:12.5px;padding:0 6px}
+  .fx .c-away {grid-area:2/3/3/5;justify-content:flex-start}
+  .fx .c-home .rk,.fx .c-away .rk{display:none}   /* names need the room */
+  .fx .c-venue{grid-area:3/1/4/3;font-size:10px}
+  .fx .c-comp {grid-area:3/3/4/4;font-size:10px}
+  .fx .c-crowd{grid-area:3/4/4/5;font-size:10px}
+  .tablehead.fx .c-when,.tablehead.fx .c-venue,
+  .tablehead.fx .c-comp,.tablehead.fx .c-crowd{font-size:8.5px}
+
+  /* ---- the drawer stacks, and its table scrolls inside itself ---- */
+  .drawer{
+    grid-template-columns:1fr;gap:10px 0;padding:8px 12px;
+    overflow-y:auto;
+  }
+  .drawer>div:first-child{overflow-x:auto}
+  .drawer table{min-width:300px}
+  .drawer dl{grid-template-columns:66px 1fr}
+}
+
+/* The filter toggle is a phone-only control. Hiding it must be scoped to wide
+   screens: a bare `.filterbar{display:none}` after the media query has equal
+   specificity and later source order, so it wins everywhere and the button
+   vanishes on the phones it exists for. Also make sure a stale
+   body.filters-open from a narrow window cannot hide the panel once the
+   window is widened again. */
+@media (min-width:701px){
+  .filterbar{display:none}
+  body.filters-open .filters{display:block}
+}
+
+/* ==========================================================================
+   PHONES - THE OTHER THREE PAGES
+   Rankings, Head to Head and Score Normalisation each carry a table that is
+   genuinely wide (Score Normalisation is 966px of columns), so there is no
+   honest way to squeeze them into 390px. Instead the WIDE TABLE scrolls
+   sideways inside its own box and the PAGE stops scrolling sideways.
+
+   The header row and the body are SIBLINGS, not nested, so the horizontal
+   scroller has to be their shared parent - otherwise the header stays put
+   while the rows move and the columns stop lining up. That is why the rule
+   below targets .tmtable / .sctable / the h2h sections rather than
+   .tablewrap, which is what you would reach for first.
+
+   .tablewrap keeps overflow-y for itself: its clientHeight is what the
+   virtual table measures, and it must stay bounded.
+   ========================================================================== */
+@media (max-width:700px){
+  /* the filter/rule controls above each table: stop 190px-min selects and a
+     582px row of segmented buttons from setting the page width */
+  .rulebar{flex-direction:column;align-items:stretch;gap:10px;padding:10px 14px}
+  .rule{min-width:0}
+  .rule select,.rule input[type=text]{width:100%;min-width:0}
+  .segbtns.wrap,.rule .segbtns{flex-wrap:wrap}
+  .rule .segbtns button{flex:1 1 auto;white-space:normal;font-size:11.5px}
+  .rulenote{padding:8px 14px;font-size:11.5px}
+  .pickbar{flex-direction:column;align-items:stretch;gap:10px;padding:10px 14px}
+  .pickbar select,.pickbar input[type=text]{width:100%;min-width:0}
+
+  /* the wide tables */
+  .tmtable,.sctable{overflow-x:auto;overflow-y:hidden}
+  .tmtable .tablehead,.tmtable .tablewrap,
+  .sctable .tablehead,.sctable .tablewrap{min-width:620px}
+  .h2h .tablehead,.h2h .tablewrap{min-width:760px}
+  .h2h #rivalry,.h2h #allopp{overflow-x:auto}
+  .tmtable .tablewrap,.sctable .tablewrap{height:60vh}
+
+  /* the rest of the h2h page: cards and the chart */
+  .h2hhead{grid-template-columns:1fr;gap:8px;text-align:center}
+  .chartbox{overflow-x:auto}
+  .splitcards,.cards.sccards{grid-template-columns:1fr}
+  .scbody{grid-template-columns:1fr;height:auto}
+  .eraref{border-right:0;border-bottom:1px solid var(--line);overflow-x:auto}
+  .intro{padding:10px 14px}
+  .sliderticks i{font-size:9px}
+  .asat-date{font-size:21px}
+}
+
+/* A filter that cannot do anything yet should look like it. The home/away
+   control only bites once a team is chosen - see renderAnalysis. */
+.f.seg.disabled{opacity:.55}
+.f.seg.disabled .segbtns button{cursor:not-allowed}
+.f.seg.disabled .segbtns button:hover{background:none}
+
+/* Forces a line break inside a chip row. Kept because it is generic and
+   costs nothing; the Amateur/Professional chips it was written for were
+   removed on 28 Aug - the professional era begins on 26 August 1995 and this
+   filter works in whole years, so neither chip could be made exactly right
+   and the owner would rather have no chip than a chip that quietly includes
+   the wrong matches. */
+.chips .chipbreak{flex-basis:100%;height:0;margin:0}
+
+/* Rankings only: a team that ranks here but is not a World Rugby member.
+   Deliberately small - it marks a position without shouting, and it appears
+   on the Rankings page alone. The Super Filter stays clean. */
+.ownflag{
+  display:inline-block; margin-left:.45em; color:var(--accent,#c08a2e);
+  font-size:1.1em; line-height:1; cursor:help; vertical-align:baseline;
 }

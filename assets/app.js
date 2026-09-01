@@ -72,12 +72,25 @@ var VENUE = new Array(N);   // "stadium city country", lower-cased, for search
 var S = {
   team: "", opp: "", side: "any",
   yearFrom: null, yearTo: null, dows: [],
-  country: "", stadium: "", neutral: "any",
-  comp: "", wc: "any", elig: "any",
+  country: "", city: "", venue: "",
+  comp: "", wc: "any", elig: "any", mclass: "any", full: "any",
   result: "any", marginMin: null, marginMax: null,
   oppRankMin: null, oppRankMax: null,
   sort: "date", dir: -1
 };
+
+/* match_class, written by the pipeline from data\team_classification.csv.
+   0 both sides national - a full international
+   1 exactly one side national - a Lions Test, a match against an A or XV side
+   2 neither side national - a touring party against a county or province
+   3 both sides national but the owner has ruled it not a Test by hand
+   4 a side the classification file has never seen; NEVER reported as a full
+     international, because the honest answer there is "I do not know" */
+var MCLASS = {0: "both sides are countries", 1: "one side is not a country",
+              2: "neither side is a country", 4: "a side not classified yet"};
+var MCLASS_LONG = {0: "both sides are countries", 1: "one side is not a country",
+                   2: "neither side is a country",
+                   4: "one side is not classified yet"};
 
 var teamIdx = {};
 TEAMS.forEach(function (t, i) { teamIdx[t] = i; });
@@ -109,9 +122,20 @@ function passes(i) {
   var h = r[F.home], a = r[F.away];
 
   if (t >= 0) {
-    if (S.side === "home") { if (h !== t) return false; }
-    else if (S.side === "away") { if (a !== t) return false; }
-    else if (h !== t && a !== t) return false;
+    /* HOME, AWAY AND NEUTRAL ARE MUTUALLY EXCLUSIVE. Either one side is at
+       home and the other is away, or neither is, and then the match is
+       neutral - there is no such thing as being "at home at a neutral venue".
+       Note the `&& !r[F.neutral]` on the first two: without it, Home would
+       have swept up the 11 Wales matches that are really neutral (the 2023
+       World Cup pool games in France, and the 1997-99 "home" fixtures played
+       at Wembley while the Millennium Stadium was built). In those the home
+       designation is only which column the name sits in.
+       The three now partition a team's matches exactly:
+       Wales 409 home + 353 away + 45 neutral = 807. */
+    if (h !== t && a !== t) return false;
+    if (S.side === "home") { if (h !== t || r[F.neutral]) return false; }
+    else if (S.side === "away") { if (a !== t || r[F.neutral]) return false; }
+    else if (S.side === "neutral") { if (!r[F.neutral]) return false; }
   }
   if (o >= 0 && h !== o && a !== o) return false;
   if (t >= 0 && o >= 0 && h !== o && a !== o) return false;
@@ -122,12 +146,14 @@ function passes(i) {
   if (S.dows.length && S.dows.indexOf(DOW[i]) === -1) return false;
 
   if (S.countryI >= 0 && r[F.country] !== S.countryI) return false;
-  if (S.venueQ && VENUE[i].indexOf(S.venueQ) === -1) return false;
+  if (S.cityI >= 0 && r[F.city] !== S.cityI) return false;
+  if (S.venueI >= 0 && r[F.stadium] !== S.venueI) return false;
   if (S.compI >= 0 && r[F.competition] !== S.compI) return false;
 
-  if (S.neutral !== "any" && r[F.neutral] !== +S.neutral) return false;
   if (S.wc !== "any" && r[F.world_cup] !== +S.wc) return false;
   if (S.elig !== "any" && r[F.eligible] !== +S.elig) return false;
+  if (S.mclass !== "any" && r[F.match_class] !== +S.mclass) return false;
+  if (S.full !== "any" && r[F.full_intl] !== +S.full) return false;
 
   var m = r[F.margin];
   if (S.marginMin !== null && m < S.marginMin) return false;
@@ -176,7 +202,8 @@ function applyFilters() {
   if (S.teamI >= 0) S.team = TEAMS[S.teamI];
   if (S.oppI >= 0) S.opp = TEAMS[S.oppI];
   S.countryI = S.country ? LK.country.indexOf(S.country) : -1;
-  S.venueQ = S.stadium ? S.stadium.toLowerCase() : "";
+  S.cityI = S.city ? LK.city.indexOf(S.city) : -1;
+  S.venueI = S.venue ? LK.stadium.indexOf(S.venue) : -1;
   S.compI = S.comp ? LK.competition.indexOf(S.comp) : -1;
   if (S.teamI === undefined) S.teamI = -1;
   if (S.oppI === undefined) S.oppI = -1;
@@ -321,8 +348,23 @@ var wrap = document.getElementById("tablewrap");
 var spacer = document.getElementById("tablespacer");
 var bodyEl = document.getElementById("tablebody");
 var emptyEl = document.getElementById("empty");
+/* Row geometry lives in the STYLESHEET, not here. The virtual table computes
+   scroll offsets arithmetically, so if CSS and JS ever disagree about how
+   tall a row is, rows silently overlap or leave gaps - and nothing throws.
+   Reading the custom properties keeps one source of truth, which is what
+   lets the phone breakpoint use a taller three-line row safely. */
 var ROW_H = 37;
 var DRAWER_H = 132;
+function readMetrics() {
+  var cs = getComputedStyle(document.documentElement);
+  var r = parseFloat(cs.getPropertyValue("--row-h"));
+  var d = parseFloat(cs.getPropertyValue("--drawer-h"));
+  var changed = false;
+  if (r > 0 && r !== ROW_H) { ROW_H = r; changed = true; }
+  if (d > 0 && d !== DRAWER_H) { DRAWER_H = d; changed = true; }
+  return changed;
+}
+readMetrics();
 var view = [];
 var open = {};                 // data-row index -> true. Survives re-filtering.
 
@@ -474,8 +516,12 @@ function drawerHTML(i) {
       dd("Venue", c.venue) + dd("Country", c.country) +
       dd("Crowd", c.crowd ? fmtNum(c.crowd) : null) +
       dd("Type", c.type) +
+      dd("Test match", r[F.full_intl] === null ? "not established"
+                     : (r[F.full_intl] ? "yes - a full international"
+                                       : "no")) +
+      dd("Sides", MCLASS_LONG[r[F.match_class]]) +
       dd("Ranked", r[F.eligible] ? "counts towards the rankings"
-                                 : "not ranking-eligible") +
+                                 : "moved nobody's rating") +
       dd("Before", rank) +
       dd("Source", "spreadsheet row " + r[F.excel_row]) +
     "</dl></div></div>";
@@ -537,6 +583,17 @@ function toggleRow(i) {
 
 function setText(id, v) { document.getElementById(id).textContent = v; }
 
+/* WITHOUT A TEAM OR AN OPPONENT, MOST OF THIS PANEL IS MEANINGLESS.
+   Every W/D/L figure here runs through outcome(), which falls back to the
+   HOME team when no side is selected - so "won 5,779" means "the side listed
+   at home won 5,779 times", and the "17 match winning streak" is 17
+   consecutive matches won by whoever happened to be at home. Those describe
+   nothing. Same for win rate, points for/against and the form strip.
+   So the cards are hidden until there is a point of view to compute them
+   from. The HEADING stays: it is the only place the active filters are
+   confirmed back to you, and it is accurate with or without a team. */
+function hasPerspective() { return S.teamI >= 0 || S.oppI >= 0; }
+
 function renderAnalysis(a) {
   var team = S.team;
   var persp = team || "the home team";
@@ -547,6 +604,7 @@ function renderAnalysis(a) {
   else if (S.opp && !team) bits.push("matches involving " + S.opp);
   if (S.side === "home") bits.push("at home");
   if (S.side === "away") bits.push("away");
+  if (S.side === "neutral") bits.push("at neutral venues");
   if (S.yearFrom || S.yearTo) {
     bits.push((S.yearFrom || 1871) + "–" + (S.yearTo || 2026));
   }
@@ -555,9 +613,11 @@ function renderAnalysis(a) {
   }
   if (S.comp) bits.push(S.comp);
   if (S.country) bits.push("in " + S.country);
-  if (S.stadium) bits.push('venue containing "' + S.stadium + '"');
-  if (S.neutral === "1") bits.push("neutral venues");
-  if (S.neutral === "0") bits.push("home venues");
+  if (S.city) bits.push("in " + S.city);
+  if (S.venue) bits.push("at " + S.venue);
+  if (S.mclass !== "any") bits.push(MCLASS[+S.mclass]);
+  if (S.full === "1") bits.push("full internationals only");
+  if (S.full === "0") bits.push("excluding full internationals");
   if (S.wc === "1") bits.push("World Cup only");
   if (S.wc === "0") bits.push("excluding the World Cup");
   if (S.result !== "any") bits.push({ W: "wins", D: "draws", L: "defeats" }[S.result] + " only");
@@ -572,6 +632,53 @@ function renderAnalysis(a) {
   }
   document.getElementById("an-sub").textContent =
     bits.length ? bits.join(" · ") : "no filters — the whole archive";
+
+  /* THE HOME/AWAY CONTROL IS DEAD WITHOUT A TEAM. The side branch in passes()
+     sits inside `if (t >= 0)`, so with no team chosen all three buttons
+     return the identical 10,128 rows - you could click Home, watch nothing
+     move, and get no explanation. It is disabled until a team is picked, and
+     its label names the team so it is obvious whose home matches you are
+     asking for. Note: TEAM only, not opponent - an opponent gives the stats a
+     perspective but does not make this control do anything. */
+  var sideWrap = document.getElementById("f-side-wrap");
+  if (sideWrap) {
+    var live = S.teamI >= 0;
+    sideWrap.classList.toggle("disabled", !live);
+    [].forEach.call(sideWrap.querySelectorAll("#f-side button"), function (btn) {
+      btn.disabled = !live;
+    });
+    document.getElementById("side-label").textContent =
+      live ? team + " playing at" : "Playing at";
+    document.getElementById("side-note").textContent = live
+      ? "At World Cups and other neutral venues this is only how the fixture "
+        + "was listed, not a real home advantage."
+      : "Pick a team above first — this filters that team's matches, so it "
+        + "does nothing on its own.";
+  }
+
+  var cards = document.querySelector(".analysis .cards");
+  var show = hasPerspective();
+  if (cards) cards.hidden = !show;
+  /* the phone Stats toggle has nothing to toggle when the cards are gone */
+  var stog = document.getElementById("statstoggle");
+  if (stog) {
+    stog.hidden = !show;
+    if (!show) {
+      document.body.classList.remove("stats-open");
+      stog.textContent = "Stats";
+      stog.setAttribute("aria-expanded", "false");
+    }
+  }
+
+  /* Phone only: the filter panel is collapsed by default there, so the count
+     has to be visible on the bar or an active filter becomes invisible and
+     the row count looks wrong. */
+  var fc = document.getElementById("filtercount");
+  if (fc) {
+    fc.textContent = bits.length
+      ? bits.length + (bits.length === 1 ? " filter on" : " filters on")
+      : "showing everything";
+  }
 
   document.getElementById("wdl-label").textContent =
     "Played / Won / Drawn / Lost — from " + persp + "'s point of view";
@@ -662,6 +769,71 @@ function fill(sel, values, placeholder) {
   return el;
 }
 
+/* CASCADING VENUE PICKERS.
+   Country narrows City; Country and City together narrow Venue. Nothing is
+   fetched - every row already carries its country, city and stadium index,
+   so this is one pass over the rows counting which values survive.
+
+   Two things this has to get right:
+   1. A selection can be INVALIDATED by a change above it. Pick Cardiff, then
+      switch the country to France, and Cardiff is no longer a legal choice -
+      it is cleared rather than left set to something the list cannot show,
+      which would silently filter to zero matches.
+   2. It deliberately keys on COUNTRY and CITY ONLY, not on the whole filter
+      state. Narrowing the venue list by year or team as well would mean the
+      list shifted under you every time you touched an unrelated control. */
+function venueOptionsFor(field, whereCountry, whereCity) {
+  var seen = Object.create(null);
+  for (var i = 0; i < N; i++) {
+    var r = ROWS[i];
+    if (r[F[field]] === null) continue;
+    if (whereCountry >= 0 && r[F.country] !== whereCountry) continue;
+    if (whereCity >= 0 && r[F.city] !== whereCity) continue;
+    var name = LK[field === "stadium" ? "stadium" : field][r[F[field]]];
+    seen[name] = (seen[name] || 0) + 1;
+  }
+  return Object.keys(seen).sort().map(function (name) {
+    return { name: name, n: seen[name] };
+  });
+}
+
+function fillCounted(sel, rows, placeholder) {
+  var el = document.getElementById(sel);
+  var html = '<option value="">' + placeholder + "</option>";
+  for (var i = 0; i < rows.length; i++) {
+    html += '<option value="' + esc(rows[i].name) + '">' + esc(rows[i].name) +
+            " (" + fmtNum(rows[i].n) + ")</option>";
+  }
+  el.innerHTML = html;
+  return el;
+}
+
+/* Rebuild City and Venue for the current Country (and City). Returns true if
+   it had to drop a selection that is no longer reachable, so the caller knows
+   a refresh is needed. */
+function syncVenuePickers() {
+  var ci = S.country ? LK.country.indexOf(S.country) : -1;
+  var cityRows = venueOptionsFor("city", ci, -1);
+  var dropped = false;
+  if (S.city && !cityRows.some(function (o) { return o.name === S.city; })) {
+    S.city = ""; dropped = true;
+  }
+  fillCounted("f-city", cityRows,
+              ci >= 0 ? "Any city in " + S.country : "Any city");
+  document.getElementById("f-city").value = S.city;
+
+  var cy = S.city ? LK.city.indexOf(S.city) : -1;
+  var venueRows = venueOptionsFor("stadium", ci, cy);
+  if (S.venue && !venueRows.some(function (o) { return o.name === S.venue; })) {
+    S.venue = ""; dropped = true;
+  }
+  fillCounted("f-venue", venueRows,
+              S.city ? "Any venue in " + S.city
+                     : (ci >= 0 ? "Any venue in " + S.country : "Any venue"));
+  document.getElementById("f-venue").value = S.venue;
+  return dropped;
+}
+
 function countPresent(field) {
   var n = 0;
   for (var i = 0; i < N; i++) if (ROWS[i][field] !== null) n++;
@@ -672,8 +844,8 @@ function init() {
   document.getElementById("buildinfo").innerHTML =
     fmtNum(D.meta.matches) + " matches · " + fmtNum(D.meta.teams) + " teams · " +
     D.meta.first_match + " to " + D.meta.last_match +
-    "<br>built " + D.meta.built.replace("T", " ") + " from " +
-    esc(D.meta.source_workbook);
+    '<br>built ' + D.meta.built.replace("T", " ") +
+    '<span class="fromwb"> from ' + esc(D.meta.source_workbook) + "</span>";
 
   // Teams sorted by how much they played — the ones he wants are at the top,
   // and the full alphabetical list follows.
@@ -704,22 +876,16 @@ function init() {
   document.getElementById("f-team").innerHTML = teamOptions("Any team");
   document.getElementById("f-opp").innerHTML = teamOptions("Any opponent");
 
-  fill("f-country", LK.country.slice().sort(), "Anywhere");
+  /* Country, city and venue are now three exact pickers rather than one
+     substring box. NOTE THE COST, it is deliberate and accepted: 42 stadium
+     entries are the same ground under different names - Murrayfield appears
+     four times - so picking one returns that spelling's matches only. The
+     substring search used to catch all four at once. This becomes correct
+     when the stadium names are deduplicated in the source data.
+     The "— recorded on N of 10,128" coverage notes were removed on request. */
+  fillCounted("f-country", venueOptionsFor("country", -1, -1), "Anywhere");
   fill("f-comp", LK.competition.slice().sort(), "Any competition");
-  document.getElementById("stadiums").innerHTML =
-    LK.stadium.concat(LK.city).concat(LK.country).sort().map(function (s) {
-      return '<option value="' + esc(s) + '">';
-    }).join("");
-
-  var cN = countPresent(F.country), pN = countPresent(F.competition);
-  var sN = 0;
-  for (var v = 0; v < N; v++) if (VENUE[v]) sN++;
-  document.getElementById("sparse-country").textContent =
-    "— recorded on " + fmtNum(cN) + " of " + fmtNum(N);
-  document.getElementById("sparse-stadium").textContent =
-    "— recorded on " + fmtNum(sN) + " of " + fmtNum(N);
-  document.getElementById("sparse-comp").textContent =
-    "— recorded on " + fmtNum(pN) + " of " + fmtNum(N);
+  syncVenuePickers();
 
   // --- events
   function onSel(id, key) {
@@ -728,9 +894,13 @@ function init() {
     });
   }
   onSel("f-team", "team"); onSel("f-opp", "opp");
-  onSel("f-country", "country"); onSel("f-comp", "comp");
-  document.getElementById("f-stadium").addEventListener("input", function () {
-    S.stadium = this.value.trim(); refresh();
+  onSel("f-venue", "venue"); onSel("f-comp", "comp");
+  ["f-country", "f-city"].forEach(function (id) {
+    document.getElementById(id).addEventListener("change", function () {
+      S[id === "f-country" ? "country" : "city"] = this.value;
+      syncVenuePickers();
+      refresh();
+    });
   });
 
   function onNum(id, key) {
@@ -754,8 +924,9 @@ function init() {
       refresh();
     });
   }
-  segGroup("f-side", "side"); segGroup("f-neutral", "neutral");
+  segGroup("f-side", "side");
   segGroup("f-wc", "wc"); segGroup("f-elig", "elig");
+  segGroup("f-mclass", "mclass"); segGroup("f-full", "full");
   segGroup("f-result", "result");
 
   document.getElementById("f-dow").addEventListener("click", function (e) {
@@ -799,7 +970,33 @@ function init() {
   });
 
   wrap.addEventListener("scroll", paint, { passive: true });
-  window.addEventListener("resize", paint);
+  /* Re-read the row height before repainting: crossing the phone breakpoint
+     changes it, and painting on stale numbers is how a virtual table tears. */
+  window.addEventListener("resize", function () {
+    if (readMetrics()) renderTable(); else paint();
+  });
+
+  var ftog = document.getElementById("filtertoggle");
+  if (ftog) {
+    ftog.addEventListener("click", function () {
+      var openNow = document.body.classList.toggle("filters-open");
+      ftog.setAttribute("aria-expanded", String(openNow));
+      ftog.textContent = openNow ? "Hide filters" : "Filters";
+      /* The table is below the panel, so its height changes when the panel
+         opens. Repaint or the virtual rows sit at stale offsets. */
+      paint();
+    });
+  }
+
+  var stog = document.getElementById("statstoggle");
+  if (stog) {
+    stog.addEventListener("click", function () {
+      var openNow = document.body.classList.toggle("stats-open");
+      stog.setAttribute("aria-expanded", String(openNow));
+      stog.textContent = openNow ? "Hide stats" : "Stats";
+      paint();
+    });
+  }
 
   document.getElementById("reset").addEventListener("click", function () {
     location.hash = "";
@@ -818,8 +1015,8 @@ function init() {
 }
 
 function resetAll() {
-  S.team = S.opp = S.country = S.stadium = S.comp = "";
-  S.side = S.neutral = S.wc = S.elig = S.result = "any";
+  S.team = S.opp = S.country = S.city = S.venue = S.comp = "";
+  S.side = S.wc = S.elig = S.result = S.mclass = S.full = "any";
   S.yearFrom = S.yearTo = S.marginMin = S.marginMax = null;
   S.oppRankMin = S.oppRankMax = null;
   S.dows = [];
@@ -833,14 +1030,17 @@ function syncControls() {
   document.getElementById("f-opp").value = S.opp;
   document.getElementById("f-country").value = S.country;
   document.getElementById("f-comp").value = S.comp;
-  document.getElementById("f-stadium").value = S.stadium;
+  /* rebuilds City and Venue for whatever Country is now set, and re-applies
+     their values - a deep link or a reset can change all three at once */
+  syncVenuePickers();
   document.getElementById("f-year-from").value = S.yearFrom === null ? "" : S.yearFrom;
   document.getElementById("f-year-to").value = S.yearTo === null ? "" : S.yearTo;
   document.getElementById("f-margin-min").value = S.marginMin === null ? "" : S.marginMin;
   document.getElementById("f-margin-max").value = S.marginMax === null ? "" : S.marginMax;
   document.getElementById("f-oppr-min").value = S.oppRankMin === null ? "" : S.oppRankMin;
   document.getElementById("f-oppr-max").value = S.oppRankMax === null ? "" : S.oppRankMax;
-  [["f-side", S.side], ["f-neutral", S.neutral], ["f-wc", S.wc],
+  [["f-side", S.side], ["f-wc", S.wc], ["f-mclass", S.mclass],
+   ["f-full", S.full],
    ["f-elig", S.elig], ["f-result", S.result]].forEach(function (p) {
     var box = document.getElementById(p[0]);
     [].forEach.call(box.children, function (c) {
@@ -858,7 +1058,7 @@ function syncControls() {
 
 // ---------------------------------------------- shareable / bookmarkable
 var HASH_KEYS = ["team", "opp", "side", "yearFrom", "yearTo", "country",
-                 "stadium", "neutral", "comp", "wc", "elig", "result",
+                 "city", "venue", "comp", "wc", "elig", "mclass", "full", "result",
                  "marginMin", "marginMax", "oppRankMin", "oppRankMax",
                  "sort", "dir"];
 var writingHash = false;
@@ -915,7 +1115,9 @@ function exportCSV() {
   var head = ["Date", "Day", "Home", "Home Score", "Away Score", "Away",
               "Result (" + (S.team || "home") + ")", "Margin", "Competition",
               "Trophy", "Match Type", "Stadium", "City", "Country", "Attendance",
-              "Neutral", "World Cup", "Counts for rankings", "Home rank before",
+              "Neutral", "World Cup", "Counts for rankings", "Full international",
+              "Sides",
+              "Home rank before",
               "Home rating before", "Away rank before", "Away rating before"]
              .concat(bdHead, ["Excel row"]);
   var out = [head.join(",")];
@@ -946,6 +1148,8 @@ function exportCSV() {
       r[F.attendance] === null ? "" : r[F.attendance],
       r[F.neutral] ? "TRUE" : "FALSE", r[F.world_cup] ? "TRUE" : "FALSE",
       r[F.eligible] ? "TRUE" : "FALSE",
+      r[F.full_intl] === null ? "" : (r[F.full_intl] ? "TRUE" : "FALSE"),
+      MCLASS_LONG[r[F.match_class]],
       r[F.home_rank_before] === null ? "" : r[F.home_rank_before],
       r[F.home_rating_before] === null ? "" : r[F.home_rating_before],
       r[F.away_rank_before] === null ? "" : r[F.away_rank_before],
