@@ -4,7 +4,7 @@ A complete, unified database of every international rugby union match, from the
 first ever international on 27 March 1871 to the present day — presented as a
 public time capsule and what-if tool.
 
-**11,259 matches · 616 teams · 1871-03-27 to 2026-09-06**
+**11,258 matches · 616 teams · 1871-03-27 to 2026-09-06**
 
 ## The site
 
@@ -34,4 +34,4 @@ Every figure on every page is cross-checked against an independent Python
 recomputation before release. Known data gaps and open audit items are
 documented rather than hidden — see the coverage notes on each page.
 
-Built 2026-09-07 at 14:12:05 from `Historical Rugby Results.xlsx`.
+Built 2026-09-07 at 14:31:27 from `Historical Rugby Results.xlsx`.
