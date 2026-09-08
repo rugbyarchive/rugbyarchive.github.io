@@ -359,6 +359,7 @@ function init() {
     (100 * SC.coverage / SC.total_matches).toFixed(1) +
     "%) with complete scoring breakdowns for both teams. Matches without " +
     "enough detail are excluded from this view but remain in the match archive. " +
+    "As further research fills in scoring details, more matches will become available for comparison. " +
     "Restated scores apply a different era’s point values to the recorded scoring " +
     "events; they do not predict how the teams would have played under different laws.";
 
