@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="The World Rugby rankings replayed from 27 March 1871. Drag the slider to any date and see the full world table, under four what-if rule sets.">
+<meta name="description" content="The World Rugby rankings replayed from 27 March 1871. Drag the slider to any date and see the full world table, using the archive reconstruction or official published rankings.">
 <meta name="theme-color" content="#1f3864">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Rugby Archive">
 <meta property="og:title" content="Rugby Archive — Rankings Time Machine">
-<meta property="og:description" content="The World Rugby rankings replayed from 27 March 1871. Drag the slider to any date and see the full world table, under four what-if rule sets.">
+<meta property="og:description" content="The World Rugby rankings replayed from 27 March 1871. Drag the slider to any date and see the full world table, using the archive reconstruction or official published rankings.">
 <meta name="twitter:card" content="summary">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231f3864'/%3E%3Cellipse cx='16' cy='16' rx='11' ry='7' transform='rotate(-35 16 16)' fill='none' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M11 21 L21 11' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M13.5 16.5 L15.5 18.5 M16.5 13.5 L18.5 15.5' stroke='%23fff' stroke-width='1.6'/%3E%3C/svg%3E">
 <title>Rugby Archive — Rankings Time Machine</title>
-<link rel="stylesheet" href="assets/styles.css?v=20260908-timeline">
+<link rel="stylesheet" href="assets/styles.css?v=20260908-single-model">
 <!-- loaded here, not at the foot, so the theme is set before the first paint -->
 <script src="assets/theme.js"></script>
 </head>
@@ -86,31 +86,11 @@
   <details class="tmoptions"><summary>Ranking options, team search and export</summary>
   <section class="rulebar">
     <div class="rule">
-      <span>Ranking rules</span>
-      <div class="segbtns" id="f-mode">
-        <button type="button" data-v="official" class="on">World Rugby rules</button>
-        <button type="button" data-v="legacy">Legacy model</button>
-      </div>
-    </div>
-    <div class="rule">
-      <span>British &amp; Irish Lions / British Isles</span>
-      <div class="segbtns" id="f-lions">
-        <button type="button" data-v="0" class="on">Excluded &mdash; as World Rugby does</button>
-        <button type="button" data-v="1">Counted &mdash; what-if</button>
-      </div>
-    </div>
-    <div class="rule">
       <span>Teams with no recent match</span>
       <div class="segbtns" id="f-dormant">
         <button type="button" data-v="show" class="on">Show all</button>
         <button type="button" data-v="hide">Hide idle 4 years+</button>
       </div>
-    </div>
-    <div class="rule">
-      <span>Compare against</span>
-      <select id="f-compare">
-        <option value="">nothing</option>
-      </select>
     </div>
     <div class="rule grow">
       <span>Find a team</span>
@@ -181,7 +161,7 @@
 
 </main>
 
-<script src="data/rankings-data.js?v=20260908-timeline" onerror="window.__dataFailed=true"></script>
-<script src="assets/rankings.js?v=20260908-timeline"></script>
+<script src="data/rankings-data.js?v=20260908-single-model" onerror="window.__dataFailed=true"></script>
+<script src="assets/rankings.js?v=20260908-single-model"></script>
 </body>
 </html>

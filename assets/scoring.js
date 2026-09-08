@@ -350,8 +350,8 @@ function readHash() {
 function init() {
   document.getElementById("buildinfo").innerHTML =
     num(SC.coverage) + " of " + num(SC.total_matches) +
-    " matches carry a full try/kick breakdown<br>scoring systems " +
-    esc(SC.source);
+    " matches carry a full try/kick breakdown<br>" +
+    "only these can be restated in another era's points";
 
   document.getElementById("coverage").innerHTML =
     "<b>Read this before quoting any restated score.</b> Only <b>" +

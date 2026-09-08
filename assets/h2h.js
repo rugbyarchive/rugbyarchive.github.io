@@ -683,10 +683,24 @@ function syncControls() {
   });
 }
 
+var MONTHS_L = ["January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November",
+                "December"];
+
+/* "2026-08-11" -> "11 August 2026", built from the string. new Date("...")
+   parses an ISO date as UTC midnight and prints the day before for anyone
+   west of Greenwich. */
+function longDate(iso) {
+  var p = String(iso).split("-");
+  if (p.length !== 3) return String(iso);
+  return String(+p[2]) + " " + MONTHS_L[+p[1] - 1] + " " + p[0];
+}
+
 function init() {
   document.getElementById("buildinfo").innerHTML =
-    num(D.meta.matches) + " matches · " + num(D.meta.teams) + " teams<br>" +
-    "scoring systems from " + esc(SC ? SC.source : "n/a");
+    num(D.meta.matches) + " recorded matches · " + num(D.meta.teams) +
+    " teams &amp; touring sides<br>complete to " +
+    longDate(D.meta.last_match);
 
   document.getElementById("f-a").innerHTML = teamOptions("Pick a team");
   document.getElementById("f-b").innerHTML = teamOptions("Every opponent");

@@ -377,7 +377,8 @@ select:focus,input:focus{outline:2px solid #b9c9e6;outline-offset:-1px;border-co
 .mainnav a.here{color:var(--ink);border-bottom-color:var(--t-accent);font-weight:600}
 
 main.tm{display:block;height:auto;min-height:calc(100vh - 62px)}
-body:has(>main.tm){height:auto;overflow:auto}
+/* Override the explorer viewport shell, including its ID specificity. */
+body:has(>main#app.tm){display:block;height:auto;overflow:auto;padding-bottom:12px}
 main#app.tm{flex:none;min-height:0}
 .tm #f-source{margin-bottom:12px;flex-wrap:wrap}
 .tmsteps{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0 2px}

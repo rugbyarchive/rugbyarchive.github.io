@@ -1,10 +1,9 @@
 /* Rugby Archive — Rankings Time Machine.
 
-   The world table as at any date since 27 March 1871, under any of the four
-   what-if rule sets.
+   The world table as at any date since 27 March 1871, under either ranking model.
 
    IMPORTANT: no ranking rule exists in this file. The pipeline ran
-   engine\rugby_ranking_engine.py four times and recorded, for each rule set,
+   engine\rugby_ranking_engine.py twice and recorded, for each rule set,
    every team's rating after every match it counted. All this page does is
    replay that recording up to the chosen date and sort the result. If the
    rules ever change, they change in the engine and this page follows.        */
@@ -79,13 +78,13 @@ var DAY_LAST = isoToDay(D.last_match);
 // ------------------------------------------------------------------- state
 /* lions defaults to "0" - EXCLUDED - because that is what World Rugby
    actually does. Their published ratings do not move across Lions Tests.
-   The "counted" view is kept as a what-if, not as the headline table. */
+   Composite fixtures never change either side’s rating. */
 var S = { source: "archive", unit: "day", cursor: null, mode: "official", lions: "0", compare: "", find: "", dormant: "show",
           day: DAY_LAST, sort: "rank", dir: 1 };
 var DORMANT_DAYS = 365 * 4;   // no match in four years
 
 function setKey(mode, lions) {
-  return mode + (lions === "1" || lions === true ? "" : "_no_lions");
+  return "official_no_lions";
 }
 
 /* Walk one rule set's recording up to and including `day`.
@@ -128,11 +127,11 @@ function recentMatches(key, day, n) {
 // --------------------------------------------------------------- rendering
 var COLS = [
   { key: "rank",   label: "#",            cls: "num" },
-  { key: "move",   label: "12m rank",     cls: "num" },
   { key: "team",   label: "Team",         cls: "" },
   { key: "rating", label: "Rating",       cls: "num" },
   { key: "impact", label: "Matchday Δ pts", cls: "num" },
   { key: "rankImpact", label: "Δ rank", cls: "num" },
+  { key: "move",   label: "12m rank",     cls: "num" },
   { key: "chg",    label: "12m pts",      cls: "num" },
   { key: "played", label: "Played",       cls: "num" },
   { key: "last",   label: "Last played",  cls: "" }
@@ -190,7 +189,6 @@ function rowHTML(x) {
   var link = "index.html#team=" + encodeURIComponent(x.name);
   var h = '<div class="trow" style="grid-template-columns:' + gridCols() + '">' +
     '<div class="num pos">' + x.rank + "</div>" +
-    '<div class="num">' + movement(x.move) + "</div>" +
     '<div class="teamcell"><a href="' + link + '" title="See every ' +
       esc(x.name) + " match in the Super Filter\">" + esc(x.name) + "</a>" +
       (S.source !== 'world' && OWN[x.id] ? '<span class="ownflag" title="Ranked here but not a World '
@@ -200,6 +198,7 @@ function rowHTML(x) {
     '<div class="num ' + (x.impact > 0 ? 'up' : x.impact < 0 ? 'down' : '') + '">' +
       (x.impact === null ? 'new' : (x.impact > 0 ? '+' : '') + x.impact.toFixed(2)) + '</div>' +
     '<div class="num">' + movement(x.rankImpact) + '</div>' +
+    '<div class="num">' + movement(x.move) + "</div>" +
     '<div class="num ' + (x.chg > 0 ? "up" : (x.chg < 0 ? "down" : "")) + '">' +
       (x.chg === null ? "–" : (x.chg > 0 ? "+" : "") + x.chg.toFixed(2)) +
       "</div>";
@@ -324,7 +323,6 @@ function refresh() {
 
   setText("rowcount", rows.length.toLocaleString("en-GB"));
   setText("asat-date", pretty(S.day));
-  document.getElementById("f-compare").value = S.compare;
   [].forEach.call(document.getElementById("f-dormant").children, function (c) {
     c.classList.toggle("on", c.dataset.v === S.dormant);
   });
@@ -333,7 +331,7 @@ function refresh() {
 
   var set = SETS[key];
   document.getElementById("rulenote").textContent =
-    'Archive reconstruction using ' + (S.mode === 'official' ? 'World Rugby points-exchange rules' : 'the legacy model') +
+    'Archive reconstruction using World Rugby points-exchange rules' +
     '. Matchday Δ is the cumulative change on the latest matchday to affect ratings, up to this step. Matches follow archive order; kickoff order may be unknown.';
   syncTimeline(now.cursor-1);
 
@@ -468,7 +466,7 @@ function syncTimeline(index){
 }
 function sourceControls(){
   var official=S.source==='world',b=bounds();
-  ['f-mode','f-lions','f-dormant','f-compare'].forEach(function(id){document.getElementById(id).closest('.rule').hidden=official;});
+  ['f-dormant'].forEach(function(id){document.getElementById(id).closest('.rule').hidden=official;});
   var unit=document.getElementById('step-unit');
   unit.innerHTML=(official?'<option value="snapshot">Published update</option>':'')+'<option value="day">Matchday</option><option value="match">One match</option>';
   unit.value=S.unit;
@@ -531,7 +529,7 @@ function init() {
      reader nothing. How far the replay actually reaches does. */
   document.getElementById("buildinfo").innerHTML =
     "Every rating replayed from 1871<br>complete to " +
-    longDate(D.last_match) + " · four rule sets";
+    longDate(D.last_match) + " · World Rugby rules";
 
   var slider = document.getElementById("slider");
   slider.min = DAY_FIRST;
@@ -552,13 +550,6 @@ function init() {
   document.getElementById("jumps").innerHTML = JUMPS.map(function (j) {
     return '<button type="button" data-d="' + j[1] + '">' + j[0] + "</button>";
   }).join("");
-
-  var cmpSel = document.getElementById("f-compare");
-  ORDER.forEach(function (k) {
-    var o = document.createElement("option");
-    o.value = k; o.textContent = SETS[k].label;
-    cmpSel.appendChild(o);
-  });
 
   slider.addEventListener("input", function () {
     stop(); S.cursor=null; S.day = +this.value; refresh();
@@ -593,19 +584,10 @@ function init() {
       refresh();
     });
   }
-  seg("f-mode", "mode");
   seg('f-source','source',function(){S.unit=S.source==='world'?'snapshot':'day';S.compare='';S.sort='rank';S.dir=1;S.day=Math.max(bounds()[0],Math.min(bounds()[1],S.day));sourceControls();});
-  seg("f-lions", "lions");
   seg("f-dormant", "dormant");
   seg("speed", "speed");
 
-  cmpSel.addEventListener("change", function () {
-    S.compare = this.value;
-    if (S.compare === setKey(S.mode, S.lions)) S.compare = "";
-    this.value = S.compare;
-    if (S.sort === "cpos" || S.sort === "cdiff") { S.sort = "rank"; S.dir = 1; }
-    refresh();
-  });
   document.getElementById("f-find").addEventListener("input", function () {
     S.find = this.value.trim(); refresh();
   });
