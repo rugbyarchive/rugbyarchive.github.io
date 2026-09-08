@@ -12,7 +12,7 @@
 <meta name="twitter:card" content="summary">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231f3864'/%3E%3Cellipse cx='16' cy='16' rx='11' ry='7' transform='rotate(-35 16 16)' fill='none' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M11 21 L21 11' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M13.5 16.5 L15.5 18.5 M16.5 13.5 L18.5 15.5' stroke='%23fff' stroke-width='1.6'/%3E%3C/svg%3E">
 <title>Rugby Archive — Rankings Time Machine</title>
-<link rel="stylesheet" href="assets/styles.css">
+<link rel="stylesheet" href="assets/styles.css?v=20260908-timeline">
 <!-- loaded here, not at the foot, so the theme is set before the first paint -->
 <script src="assets/theme.js"></script>
 </head>
@@ -49,6 +49,10 @@
 <main id="app" class="tm" hidden>
 
   <section class="timebar">
+    <div class="segbtns" id="f-source" aria-label="Ranking source">
+      <button type="button" data-v="archive" class="on">Archive reconstruction · since 1871</button>
+      <button type="button" data-v="world">World Rugby · since October 2003</button>
+    </div>
     <div class="timebar-top">
       <div class="asat">
         <span class="asat-label">World rankings as at the end of</span>
@@ -60,24 +64,31 @@
         <button type="button" id="play" class="playbtn">▶ Play</button>
         <div class="segbtns speed" id="speed">
           <button type="button" data-v="1" class="on">1×</button>
+          <button type="button" data-v="2">2×</button>
           <button type="button" data-v="4">4×</button>
-          <button type="button" data-v="16">16×</button>
         </div>
-        <button type="button" id="today" class="ghostbtn">Jump to today</button>
+        <button type="button" id="today" class="ghostbtn">Latest available</button>
       </div>
     </div>
 
     <input type="range" id="slider" class="slider" min="0" max="100" value="100">
     <div class="sliderticks" id="sliderticks"></div>
 
-    <div class="chips jumps" id="jumps"></div>
+    <details class="tmextras"><summary>Jump to a milestone</summary><div class="chips jumps" id="jumps"></div></details>
+    <div class="tmsteps">
+      <button type="button" id="previous" class="ghostbtn">← Previous</button>
+      <label>Step by <select id="step-unit"><option value="day">Matchday</option><option value="match">One match</option></select></label>
+      <button type="button" id="next" class="ghostbtn">Next →</button>
+      <span id="step-status" role="status"></span>
+    </div>
   </section>
 
+  <details class="tmoptions"><summary>Ranking options, team search and export</summary>
   <section class="rulebar">
     <div class="rule">
       <span>Ranking rules</span>
       <div class="segbtns" id="f-mode">
-        <button type="button" data-v="official" class="on">Official</button>
+        <button type="button" data-v="official" class="on">World Rugby rules</button>
         <button type="button" data-v="legacy">Legacy model</button>
       </div>
     </div>
@@ -110,10 +121,12 @@
       <button type="button" id="export" class="ghostbtn">Download this table as CSV</button>
     </div>
   </section>
+  </details>
 
   <p class="rulenote" id="rulenote"></p>
 
   <section class="tmbody">
+    <details class="tmcontext" id="tmcontext" open><summary>Latest matches and ranking summary</summary>
     <aside class="topline">
       <div class="card">
         <div class="card-label">World No.1 on this date</div>
@@ -141,10 +154,11 @@
         <div class="sub" id="k-fall-sub"></div>
       </div>
       <div class="card lastmatches">
-        <div class="card-label">Last matches before this date</div>
+        <div class="card-label" id="recent-label">Latest matchday impact</div>
         <ul id="k-recent"></ul>
       </div>
     </aside>
+    </details>
 
     <div class="tmtable">
       <div class="tablebar">
@@ -167,7 +181,7 @@
 
 </main>
 
-<script src="data/rankings-data.js" onerror="window.__dataFailed=true"></script>
-<script src="assets/rankings.js"></script>
+<script src="data/rankings-data.js?v=20260908-timeline" onerror="window.__dataFailed=true"></script>
+<script src="assets/rankings.js?v=20260908-timeline"></script>
 </body>
 </html>

@@ -80,7 +80,7 @@ var DAY_LAST = isoToDay(D.last_match);
 /* lions defaults to "0" - EXCLUDED - because that is what World Rugby
    actually does. Their published ratings do not move across Lions Tests.
    The "counted" view is kept as a what-if, not as the headline table. */
-var S = { mode: "official", lions: "0", compare: "", find: "", dormant: "show",
+var S = { source: "archive", unit: "day", cursor: null, mode: "official", lions: "0", compare: "", find: "", dormant: "show",
           day: DAY_LAST, sort: "rank", dir: 1 };
 var DORMANT_DAYS = 365 * 4;   // no match in four years
 
@@ -91,12 +91,12 @@ function setKey(mode, lions) {
 /* Walk one rule set's recording up to and including `day`.
    Returns ratings, when each team last moved, and how many counted matches
    each team had played by then. */
-function tableAt(key, day) {
+function tableAt(key, day, limit) {
   var set = SETS[key], rows = set.rows, r = set.r;
   var rating = {}, last = {}, played = {}, counted = 0;
   for (var k = 0; k < rows.length; k++) {
     var m = M[rows[k]];
-    if (m[0] > day) break;
+    if (m[0] > day || (limit !== undefined && k > limit)) break;
     var h = m[1], a = m[2];
     rating[h] = r[2 * k];
     rating[a] = r[2 * k + 1];
@@ -128,9 +128,11 @@ function recentMatches(key, day, n) {
 // --------------------------------------------------------------- rendering
 var COLS = [
   { key: "rank",   label: "#",            cls: "num" },
-  { key: "move",   label: "12m",          cls: "num" },
+  { key: "move",   label: "12m rank",     cls: "num" },
   { key: "team",   label: "Team",         cls: "" },
   { key: "rating", label: "Rating",       cls: "num" },
+  { key: "impact", label: "Matchday Δ pts", cls: "num" },
+  { key: "rankImpact", label: "Δ rank", cls: "num" },
   { key: "chg",    label: "12m pts",      cls: "num" },
   { key: "played", label: "Played",       cls: "num" },
   { key: "last",   label: "Last played",  cls: "" }
@@ -149,25 +151,26 @@ var emptyEl = document.getElementById("empty");
 var rows = [];          // the current, sorted, filtered view
 
 function cols() {
-  return S.compare ? COLS.concat(CMP_COLS) : COLS;
+  var base = S.source === "world" ? COLS.filter(function(c){return c.key !== 'played' && c.key !== 'last';}).map(function(c){return c.key === 'impact' ? {key:c.key,label:'Update Δ pts',cls:'num'} : c;}) : COLS;
+  return S.compare && S.source !== 'world' ? base.concat(CMP_COLS) : base;
 }
 
 function drawHead() {
   var c = cols();
+  var width = c.reduce(function(n,x){return n+(x.key==='team'?150:x.key==='last'||x.key==='impact'?112:76);},0);
+  headEl.style.minWidth = wrap.style.minWidth = width+'px';
   headEl.style.gridTemplateColumns = gridCols();
   headEl.innerHTML = c.map(function (x) {
     var on = S.sort === x.key;
-    return '<div data-key="' + x.key + '" class="' + x.cls +
+    return '<button type="button" aria-label="Sort by ' + x.label + '" data-key="' + x.key + '" class="' + x.cls +
       (on ? " sorted" : "") + '">' + x.label +
       (on ? ' <span class="arrow">' + (S.dir > 0 ? "▲" : "▼") + "</span>" : "") +
-      "</div>";
+      "</button>";
   }).join("");
 }
 
 function gridCols() {
-  return S.compare
-    ? "44px 52px minmax(120px,1fr) 74px 70px 60px 118px 84px 54px"
-    : "44px 52px minmax(120px,1fr) 78px 74px 64px 118px";
+  return cols().map(function(c){return c.key === 'team' ? 'minmax(150px,1fr)' : c.key === 'last' ? '112px' : c.key === 'impact' ? '112px' : '76px';}).join(' ');
 }
 
 function esc(s) {
@@ -190,18 +193,21 @@ function rowHTML(x) {
     '<div class="num">' + movement(x.move) + "</div>" +
     '<div class="teamcell"><a href="' + link + '" title="See every ' +
       esc(x.name) + " match in the Super Filter\">" + esc(x.name) + "</a>" +
-      (OWN[x.id] ? '<span class="ownflag" title="Ranked here but not a World '
+      (S.source !== 'world' && OWN[x.id] ? '<span class="ownflag" title="Ranked here but not a World '
         + 'Rugby member union - this position exists in this archive only">'
         + "\u2022</span>" : "") + "</div>" +
     '<div class="num rating">' + x.rating.toFixed(2) + "</div>" +
+    '<div class="num ' + (x.impact > 0 ? 'up' : x.impact < 0 ? 'down' : '') + '">' +
+      (x.impact === null ? 'new' : (x.impact > 0 ? '+' : '') + x.impact.toFixed(2)) + '</div>' +
+    '<div class="num">' + movement(x.rankImpact) + '</div>' +
     '<div class="num ' + (x.chg > 0 ? "up" : (x.chg < 0 ? "down" : "")) + '">' +
       (x.chg === null ? "–" : (x.chg > 0 ? "+" : "") + x.chg.toFixed(2)) +
-      "</div>" +
-    '<div class="num">' + x.played + "</div>" +
+      "</div>";
+  if (S.source !== 'world') h += '<div class="num">' + x.played + "</div>" +
     '<div class="lastp' + (x.dormant ? " dormant" : "") + '">' +
       shortDate(x.last) + (x.dormant ? ' <span class="tag">idle</span>' : "") +
       "</div>";
-  if (S.compare) {
+  if (S.compare && S.source !== 'world') {
     h += '<div class="num">' + (x.cpos === null ? "–" : x.cpos) + "</div>" +
          '<div class="num ' + (x.cdiff > 0 ? "up" : (x.cdiff < 0 ? "down" : "")) +
          '">' + (x.cdiff === null ? "–"
@@ -226,11 +232,26 @@ function setText(id, v) { document.getElementById(id).textContent = v; }
 
 // ------------------------------------------------------------------ update
 var lastNow = null;
+var CHANGES = {};
+function lastImpact(key,limit){
+  if(!CHANGES[key]){
+    var set=SETS[key],rating={},changed=[];
+    set.rows.forEach(function(index,k){var m=M[index],h=m[1],a=m[2],hr=set.r[2*k],ar=set.r[2*k+1];
+      if(rating[h]===undefined||rating[a]===undefined||Math.abs(rating[h]-hr)>1e-9||Math.abs(rating[a]-ar)>1e-9)changed.push(k);
+      rating[h]=hr;rating[a]=ar;
+    });CHANGES[key]=changed;
+  }
+  var found=-1;for(var i=0;i<CHANGES[key].length&&CHANGES[key][i]<=limit;i++)found=CHANGES[key][i];return found;
+}
 
 function refresh() {
+  if (S.source === 'world') { refreshOfficial(); return; }
   var t0 = performance.now();
   var key = setKey(S.mode, S.lions);
-  var now = tableAt(key, S.day);
+  var now = tableAt(key, S.day, S.cursor === null ? undefined : S.cursor);
+  var lastIndex = lastImpact(key,now.cursor-1), dayStart = lastIndex;
+  while (dayStart > 0 && M[SETS[key].rows[dayStart-1]][0] === M[SETS[key].rows[lastIndex]][0]) dayStart--;
+  var beforeDay = tableAt(key, S.day, dayStart-1);
   var yearAgo = tableAt(key, S.day - 365);
   var cmp = S.compare ? tableAt(S.compare, S.day) : null;
   lastNow = now;
@@ -241,6 +262,8 @@ function refresh() {
       id: t, name: nameAt(t, S.day), rank: now.pos[t], rating: now.rating[t],
       move: wasPos === undefined ? null : wasPos - now.pos[t],
       chg: wasRating === undefined ? null : now.rating[t] - wasRating,
+      impact: beforeDay.rating[t] === undefined ? null : now.rating[t] - beforeDay.rating[t],
+      rankImpact: beforeDay.pos[t] === undefined ? null : beforeDay.pos[t] - now.pos[t],
       played: now.played[t] || 0, last: now.last[t],
       dormant: (S.day - now.last[t]) > DORMANT_DAYS,
       cpos: cmp ? (cmp.pos[t] === undefined ? null : cmp.pos[t]) : null,
@@ -251,7 +274,6 @@ function refresh() {
 
   if (S.dormant === "hide") {
     rows = rows.filter(function (x) { return !x.dormant; });
-    for (var ri = 0; ri < rows.length; ri++) rows[ri].rank = ri + 1;
   }
   if (S.find) {
     var q = S.find.toLowerCase();
@@ -262,21 +284,21 @@ function refresh() {
   sortRows();
 
   // ---- headline cards
-  var top1 = rows.length ? rows0(now, rows[0].id) : null;
+  var top1 = now.order.length ? rows0(now, now.order[0]) : null;
   if (top1) {
     setText("k-no1", nameAt(top1.team, S.day));
-    setText("k-no1-sub", top1.rating.toFixed(2) + " points" +
+    setText("k-no1-sub", top1.rating.toFixed(2) + " points" + (S.cursor !== null ? ' · after the selected step' :
       (top1.since !== null
         ? " · top of the table since " + shortDate(top1.since) + " (" +
           Math.round(top1.days / 365.25 * 10) / 10 + " years)"
         : " · highest-rated side still active on this date; another team is "
-          + "rated higher but has not played in four years"));
+          + "rated higher but has not played in four years")));
   } else {
     setText("k-no1", "—");
     setText("k-no1-sub", "no matches played yet");
   }
   setText("k-teams", now.order.length.toLocaleString("en-GB"));
-  setText("k-teams-sub", "of " + TEAMS.length + " that ever appear");
+  setText("k-teams-sub", "ranked by the archive under these rules");
   setText("k-matches", now.counted.toLocaleString("en-GB"));
   setText("k-matches-sub", "counted under these rules since 1871");
 
@@ -290,7 +312,8 @@ function refresh() {
   setText("k-fall-sub", dn && dn.move < 0
     ? "down " + (-dn.move) + " places in 12 months (now " + dn.rank + ")" : "");
 
-  var rec = recentMatches(key, S.day, 6);
+  var rec = lastIndex >= 0 ? SETS[key].rows.slice(dayStart,lastIndex+1).map(function(i){return M[i];}) : [];
+  setText('recent-label', 'Latest matchday to change ratings' + (rec.length ? ' · ' + shortDate(rec[0][0]) : ''));
   document.getElementById("k-recent").innerHTML = rec.length
     ? rec.map(function (m) {
         return "<li><span>" + shortDate(m[0]) + "</span> " +
@@ -310,10 +333,9 @@ function refresh() {
 
   var set = SETS[key];
   document.getElementById("rulenote").textContent =
-    set.blurb + "  Under these rules " + set.matches_counted.toLocaleString("en-GB") +
-    " of " + M.length.toLocaleString("en-GB") +
-    " matches in the archive count, and " + set.teams_ranked +
-    " teams are ranked by 2026.";
+    'Archive reconstruction using ' + (S.mode === 'official' ? 'World Rugby points-exchange rules' : 'the legacy model') +
+    '. Matchday Δ is the cumulative change on the latest matchday to affect ratings, up to this step. Matches follow archive order; kickoff order may be unknown.';
+  syncTimeline(now.cursor-1);
 
   drawHead();
   spacer.style.height = (rows.length * ROW_H) + "px";
@@ -396,6 +418,8 @@ function sortRows() {
     move: function (x) { return x.move === null ? -999 : x.move; },
     rating: function (x) { return x.rating; },
     chg: function (x) { return x.chg === null ? -1e9 : x.chg; },
+    impact: function (x) { return x.impact === null ? -1e9 : x.impact; },
+    rankImpact: function (x) { return x.rankImpact === null ? -1e9 : x.rankImpact; },
     played: function (x) { return x.played; },
     last: function (x) { return x.last; },
     cpos: function (x) { return x.cpos === null ? 1e9 : x.cpos; },
@@ -410,9 +434,73 @@ function sortRows() {
   }
 }
 
+// Official snapshots retain their published positions, including tie ordering.
+var WR = (D.official || {}).snapshots || [], WR_EVENTS = [];
+WR.forEach(function(s){
+  if (!WR_EVENTS.length || JSON.stringify(s[1]) !== JSON.stringify(WR_EVENTS[WR_EVENTS.length-1][1])) WR_EVENTS.push(s);
+});
+function officialAt(day) {
+  var out={rating:{},pos:{},order:[],last:{},played:{},counted:0,snapshot:null}, snap=null;
+  for(var i=0;i<WR.length;i++){if(WR[i][0]>day)break;snap=WR[i];}
+  if(!snap)return out;
+  out.snapshot=snap[0];
+  for(var j=0;j<snap[1].length;j+=3){var t=snap[1][j];out.order.push(t);out.pos[t]=snap[1][j+1];out.rating[t]=snap[1][j+2];}
+  return out;
+}
+function eventDays(){
+  if(S.source==='world')return S.unit==='snapshot'?WR_EVENTS.map(function(s){return s[0];}):M.filter(function(m){return m[0]>=isoToDay('2003-10-06');}).map(function(m){return m[0];});
+  return SETS[setKey(S.mode,S.lions)].rows.map(function(i){return M[i][0];});
+}
+function officialIndex(){var i=-1;while(i+1<WR_EVENTS.length&&WR_EVENTS[i+1][0]<=S.day)i++;return i;}
+function selectedIndex(){var days=eventDays(),i=-1;while(i+1<days.length&&days[i+1]<=S.day)i++;return S.cursor===null?i:S.cursor;}
+function bounds(){return S.source==='world'?[isoToDay('2003-10-06'),WR.length?WR[WR.length-1][0]:isoToDay('2003-10-06')]:[DAY_FIRST,DAY_LAST];}
+function syncTimeline(index){
+  var days=eventDays(), official=S.source==='world', first=index;
+  while(first>0&&days[first-1]===days[index])first--;
+  var n=days.filter(function(d){return d===S.day;}).length;
+  setText('step-status', official&&S.unit==='snapshot'?'Latest changed snapshot: '+(index>=0?shortDate(days[index]):'none')+' · 1× = 5 seconds per update':
+    (S.unit==='match'&&index>=0?'After match '+(index-first+1)+' of '+n+' · archive order':'After the matchday')+(official?' · Published ratings may stay unchanged':'')+' · 1× = 5 seconds per step');
+  document.getElementById('previous').disabled=index<=0;
+  document.getElementById('next').disabled=index>=days.length-1;
+  document.getElementById('play').disabled=!days.length;
+  document.querySelector('.asat-label').textContent=official?'World Rugby snapshot available by':'Archive rankings after counted matches on';
+  setText('buildinfo',official?'Official snapshots · October 2003 to '+shortDate(bounds()[1]):'Archive reconstruction · 1871 to '+shortDate(DAY_LAST));
+}
+function sourceControls(){
+  var official=S.source==='world',b=bounds();
+  ['f-mode','f-lions','f-dormant','f-compare'].forEach(function(id){document.getElementById(id).closest('.rule').hidden=official;});
+  var unit=document.getElementById('step-unit');
+  unit.innerHTML=(official?'<option value="snapshot">Published update</option>':'')+'<option value="day">Matchday</option><option value="match">One match</option>';
+  unit.value=S.unit;
+  ['datebox','slider'].forEach(function(id){var el=document.getElementById(id);el.min=id==='datebox'?dayToISO(b[0]):b[0];el.max=id==='datebox'?dayToISO(b[1]):b[1];});
+  document.getElementById('sliderticks').innerHTML='';
+  document.querySelectorAll('#jumps button').forEach(function(el){el.hidden=isoToDay(el.dataset.d)<b[0];});
+}
+function refreshOfficial(){
+  var now=officialAt(S.day),year=officialAt(S.day-365),idx=officialIndex(),prev=officialAt(idx>0?WR_EVENTS[idx-1][0]:isoToDay('2003-10-06')-1);
+  lastNow=now;
+  rows=now.order.map(function(t){return {id:t,name:nameAt(t,S.day),rank:now.pos[t],rating:now.rating[t],move:year.pos[t]===undefined?null:year.pos[t]-now.pos[t],chg:year.rating[t]===undefined?null:now.rating[t]-year.rating[t],impact:prev.rating[t]===undefined?null:now.rating[t]-prev.rating[t],rankImpact:prev.pos[t]===undefined?null:prev.pos[t]-now.pos[t]};});
+  if(S.find)rows=rows.filter(function(r){return r.name.toLowerCase().includes(S.find.toLowerCase());});
+  if(!cols().some(function(c){return c.key===S.sort;})){S.sort='rank';S.dir=1;}
+  sortRows();
+  var top=now.order[0];setText('k-no1',top===undefined?'—':nameAt(top,S.day));setText('k-no1-sub',top===undefined?'No source table available':now.rating[top].toFixed(2)+' published rating points');
+  setText('k-teams',now.order.length);setText('k-teams-sub','in World Rugby’s published table');setText('k-matches','—');setText('k-matches-sub','Published snapshots do not contain match counts');
+  var changes=rows.filter(function(r){return r.move!==null;}).sort(function(a,b){return b.move-a.move;}),up=changes[0],dn=changes[changes.length-1];
+  setText('k-climb',up&&up.move>0?up.name:'—');setText('k-climb-sub',up&&up.move>0?'Up '+up.move+' places over 12 months':'');setText('k-fall',dn&&dn.move<0?dn.name:'—');setText('k-fall-sub',dn&&dn.move<0?'Down '+(-dn.move)+' places over 12 months':'');
+  var start=idx>0?WR_EVENTS[idx-1][0]:Infinity,end=idx>=0?WR_EVENTS[idx][0]:-Infinity;
+  var rec=SETS.official_no_lions.rows.map(function(i){return M[i];}).filter(function(m){return m[0]>start&&m[0]<=end;});
+  setText('recent-label','Archive matches in this update window');
+  document.getElementById('k-recent').innerHTML=rec.map(function(m){return '<li><span>'+shortDate(m[0])+'</span> '+esc(nameAt(m[1],m[0]))+' <b>'+m[3]+'–'+m[4]+'</b> '+esc(nameAt(m[2],m[0]))+'</li>';}).join('')+
+    '<li class="dnote">Archive context, not verified attribution of World Rugby’s exchange. Other matches or corrections may contribute.</li>';
+  setText('rowcount',rows.length);setText('asat-date',pretty(S.day));document.getElementById('datebox').value=dayToISO(S.day);document.getElementById('slider').value=S.day;
+  setText('rulenote','World Rugby’s actual positions and ratings. Latest available snapshot: '+(now.snapshot===null?'none':pretty(now.snapshot))+'. Update Δ compares the latest changed snapshot with its predecessor. No intermediate match ratings are invented.'+((D.official.missing_dates||[]).length?' Weekly backfill is incomplete; the timeline uses saved snapshots.':'')+(now.snapshot!==null&&S.day-now.snapshot>7?' Warning: this snapshot is more than a week older than your selected date.':''));
+  syncTimeline(selectedIndex());drawHead();spacer.style.height=rows.length*ROW_H+'px';emptyEl.hidden=!!rows.length;paint();setText('perf','');
+}
+
 // ------------------------------------------------------------------- wire
 var JUMPS = [
   ["First international", "1871-03-27"],
+  ["First official table", "2003-10-06"],
   ["1905 Originals tour", "1905-12-16"],
   ["First RWC final", "1987-06-20"],
   ["1995 RWC final", "1995-06-24"],
@@ -424,10 +512,26 @@ var JUMPS = [
   ["2023 RWC final", "2023-10-28"]
 ];
 
+var MONTHS_L = ["January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November",
+                "December"];
+
+/* "2026-08-11" -> "11 August 2026", built from the string. new Date("...")
+   parses an ISO date as UTC midnight and prints the day before for anyone
+   west of Greenwich. */
+function longDate(iso) {
+  var p = String(iso).split("-");
+  if (p.length !== 3) return String(iso);
+  return String(+p[2]) + " " + MONTHS_L[+p[1] - 1] + " " + p[0];
+}
+
 function init() {
+  document.getElementById('tmcontext').open = !(window.matchMedia && window.matchMedia('(max-width:1000px)').matches);
+  /* The build timestamp said when I last ran the pipeline, which tells a
+     reader nothing. How far the replay actually reaches does. */
   document.getElementById("buildinfo").innerHTML =
-    "Rankings replayed from " + D.first_match + " to " + D.last_match +
-    "<br>four rule sets · built " + D.built.replace("T", " ");
+    "Every rating replayed from 1871<br>complete to " +
+    longDate(D.last_match) + " · four rule sets";
 
   var slider = document.getElementById("slider");
   slider.min = DAY_FIRST;
@@ -457,23 +561,23 @@ function init() {
   });
 
   slider.addEventListener("input", function () {
-    stop(); S.day = +this.value; refresh();
+    stop(); S.cursor=null; S.day = +this.value; refresh();
   });
   document.getElementById("datebox").addEventListener("change", function () {
     if (!this.value) return;
     stop();
-    S.day = Math.min(DAY_LAST, Math.max(DAY_FIRST, isoToDay(this.value)));
+    S.cursor=null; S.day = Math.min(bounds()[1], Math.max(bounds()[0], isoToDay(this.value)));
     refresh();
   });
   document.getElementById("today").addEventListener("click", function () {
-    stop(); S.day = DAY_LAST; refresh();
+    stop(); S.cursor=null; S.day = bounds()[1]; refresh();
   });
   document.getElementById("jumps").addEventListener("click", function (e) {
     var b = e.target.closest("button"); if (!b) return;
     stop();
     [].forEach.call(this.children, function (c) { c.classList.remove("on"); });
     b.classList.add("on");
-    S.day = Math.min(DAY_LAST, Math.max(DAY_FIRST, isoToDay(b.dataset.d)));
+    S.cursor=null; S.day = Math.min(bounds()[1], Math.max(bounds()[0], isoToDay(b.dataset.d)));
     refresh();
   });
 
@@ -481,14 +585,16 @@ function init() {
     var box = document.getElementById(id);
     box.addEventListener("click", function (e) {
       var b = e.target.closest("button"); if (!b) return;
-      [].forEach.call(box.children, function (c) { c.classList.remove("on"); });
+      [].forEach.call(box.children, function (c) { c.classList.remove("on"); c.setAttribute('aria-pressed',String(c===b)); });
       b.classList.add("on");
+      stop(); if(key==='source'||key==='mode'||key==='lions')S.cursor=null;
       S[key] = b.dataset.v;
       if (after) after();
       refresh();
     });
   }
   seg("f-mode", "mode");
+  seg('f-source','source',function(){S.unit=S.source==='world'?'snapshot':'day';S.compare='';S.sort='rank';S.dir=1;S.day=Math.max(bounds()[0],Math.min(bounds()[1],S.day));sourceControls();});
   seg("f-lions", "lions");
   seg("f-dormant", "dormant");
   seg("speed", "speed");
@@ -516,15 +622,18 @@ function init() {
   window.addEventListener("resize", paint);
   document.getElementById("play").addEventListener("click", toggle);
   document.getElementById("export").addEventListener("click", exportCSV);
+  document.getElementById('step-unit').addEventListener('change',function(){stop();S.unit=this.value;S.cursor=null;refresh();});
+  document.getElementById('previous').addEventListener('click',function(){stop();step(-1);});
+  document.getElementById('next').addEventListener('click',function(){stop();step(1);});
 
   document.addEventListener("keydown", function (e) {
-    if (/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
-    if (e.key === "ArrowLeft") { stop(); step(-1); }
-    else if (e.key === "ArrowRight") { stop(); step(1); }
+    if (/^(INPUT|SELECT|TEXTAREA|BUTTON|A)$/.test(e.target.tagName)) return;
+    if (e.key === "ArrowLeft") { e.preventDefault(); stop(); step(-1); }
+    else if (e.key === "ArrowRight") { e.preventDefault(); stop(); step(1); }
     else if (e.key === " ") { e.preventDefault(); toggle(); }
   });
 
-  refresh();
+  sourceControls();refresh();
   document.getElementById("loading").hidden = true;
   document.getElementById("app").hidden = false;
   paint();
@@ -533,19 +642,11 @@ function init() {
 /* Step to the previous/next date on which the table actually changed, so the
    arrow keys never land on a day where nothing happened. */
 function step(dir) {
-  var rws = SETS[setKey(S.mode, S.lions)].rows;
-  var day = S.day;
-  if (dir > 0) {
-    for (var k = 0; k < rws.length; k++) {
-      if (M[rws[k]][0] > day) { S.day = M[rws[k]][0]; refresh(); return; }
-    }
-    S.day = DAY_LAST;
-  } else {
-    for (var j = rws.length - 1; j >= 0; j--) {
-      if (M[rws[j]][0] < day) { S.day = M[rws[j]][0]; refresh(); return; }
-    }
-    S.day = DAY_FIRST;
-  }
+  var days=eventDays(),i=selectedIndex();if(!days.length)return;
+  if((S.source==='world'&&S.unit==='snapshot')||S.unit==='match')i+=dir;
+  else if(dir>0){i++;if(i<days.length){var next=days[i];while(i+1<days.length&&days[i+1]===next)i++;}}
+  else {var current=i>=0?days[i]:S.day;while(i>=0&&days[i]>=current)i--;}
+  i=Math.max(0,Math.min(days.length-1,i));S.cursor=i;S.day=days[i];
   refresh();
 }
 
@@ -554,14 +655,15 @@ var timer = null;
 S.speed = "1";
 function toggle() { if (timer) stop(); else start(); }
 function start() {
-  if (S.day >= DAY_LAST) S.day = DAY_FIRST;
+  if(!eventDays().length)return;
+  if (selectedIndex() >= eventDays().length-1) {S.cursor=0;S.day=eventDays()[0];refresh();}
   document.getElementById("play").textContent = "❚❚ Pause";
   document.getElementById("play").classList.add("on");
   timer = setInterval(function () {
-    S.day += 30 * +S.speed;          // a month per tick
-    if (S.day >= DAY_LAST) { S.day = DAY_LAST; refresh(); stop(); return; }
-    refresh();
-  }, 80);
+    if(selectedIndex()>=eventDays().length-1){stop();return;}
+    step(1);
+    if(selectedIndex()>=eventDays().length-1)stop();
+  }, 5000 / +S.speed);
 }
 function stop() {
   if (timer) clearInterval(timer);
@@ -573,33 +675,28 @@ function stop() {
 // --------------------------------------------------------------------- CSV
 function exportCSV() {
   var key = setKey(S.mode, S.lions);
-  var head = ["Rank", "Team", "Rating", "12-month position change",
-              "12-month rating change", "Matches counted", "Last played"];
-  if (S.compare) head.push(SETS[S.compare].label + " rank", "Difference");
+  var columns = cols(), head = columns.map(function(c){return c.label;});
   function q(v) {
     if (v === null || v === undefined) return "";
     var s = String(v);
     return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
   }
   var out = ["As at," + q(dayToISO(S.day)),
-             "Rule set," + q(SETS[key].label),
+             "Source," + (S.source === 'world' ? 'World Rugby published snapshots' : 'Archive reconstruction'),
+             "Rule set," + q(S.source === 'world' ? 'World Rugby published' : SETS[key].label),
+             "Step," + q(document.getElementById('step-status').textContent),
              "Idle teams," + q(S.dormant === "hide"
                ? "hidden (no match in four years)" : "shown"),
              "", head.map(q).join(",")];
   rows.forEach(function (x) {
-    var line = [x.rank, x.name, x.rating.toFixed(4),
-                x.move === null ? "" : x.move,
-                x.chg === null ? "" : x.chg.toFixed(4),
-                x.played, dayToISO(x.last)];
-    if (S.compare) line.push(x.cpos === null ? "" : x.cpos,
-                             x.cdiff === null ? "" : x.cdiff);
+    var line = columns.map(function(c){return c.key==='team'?x.name:c.key==='last'?dayToISO(x.last):x[c.key];});
     out.push(line.map(q).join(","));
   });
   var blob = new Blob(["﻿" + out.join("\r\n")],
                       { type: "text/csv;charset=utf-8" });
   var a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "world-rankings-" + dayToISO(S.day) + "-" + key + ".csv";
+  a.download = "rankings-" + S.source + '-' + dayToISO(S.day) + "-" + key + ".csv";
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
 }
@@ -607,11 +704,12 @@ function exportCSV() {
 // test hook, same idea as the Super Filter's
 window.__TM = {
   set: function (patch) {
+    S.cursor=null;
     Object.keys(patch).forEach(function (k) {
       if (k === "date") S.day = isoToDay(patch[k]);
       else S[k] = patch[k];
     });
-    refresh();
+    sourceControls();refresh();
     return rows.length;
   },
   tableAt: function (mode, lions, iso) {
@@ -622,6 +720,9 @@ window.__TM = {
     });
   },
   state: function () { return S; },
+  view: function () { return rows; },
+  step: step,
+  officialAt: function(iso){return officialAt(isoToDay(iso));},
   top: function (n) {
     return rows.slice(0, n || 10).map(function (x) {
       return [x.rank, x.name, +x.rating.toFixed(2)];

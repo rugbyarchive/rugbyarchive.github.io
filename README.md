@@ -11,7 +11,7 @@ public time capsule and what-if tool.
 | Page | What it does |
 |---|---|
 | `index.html` | **The Super Filter** — every match in one table, with stackable filters (team, opponent, era, venue, competition, margin, day of week, world ranking at the time) and aggregates that recalculate on every change. |
-| `rankings.html` | **The Rankings Time Machine** — the World Rugby rankings replayed from 1871. Any date, four what-if rule sets. |
+| `rankings.html` | **The Rankings Time Machine** — archive reconstruction from 1871 and official World Rugby snapshots from October 2003. Match/day/update stepping, slow playback and rating changes. |
 | `head-to-head.html` | **Head to Head** — every meeting between any two sides, and who has been ahead across the whole rivalry. |
 | `scoring.html` | **Score Normalisation** — historical matches re-scored under any scoring system the game has used. |
 
@@ -34,4 +34,4 @@ Every figure on every page is cross-checked against an independent Python
 recomputation before release. Known data gaps and open audit items are
 documented rather than hidden — see the coverage notes on each page.
 
-Built 2026-09-08 at 09:08:09 from `Historical Rugby Results.xlsx`.
+Built 2026-09-08 at 10:48:11 from `Historical Rugby Results.xlsx`.

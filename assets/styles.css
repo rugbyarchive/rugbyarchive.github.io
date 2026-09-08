@@ -377,6 +377,32 @@ select:focus,input:focus{outline:2px solid #b9c9e6;outline-offset:-1px;border-co
 .mainnav a.here{color:var(--ink);border-bottom-color:var(--t-accent);font-weight:600}
 
 main.tm{display:block;height:auto;min-height:calc(100vh - 62px)}
+body:has(>main.tm){height:auto;overflow:auto}
+main#app.tm{flex:none;min-height:0}
+.tm #f-source{margin-bottom:12px;flex-wrap:wrap}
+.tmsteps{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0 2px}
+.tmsteps label{display:flex;align-items:center;gap:6px;font-size:12px}
+.tmsteps select{width:auto;padding:5px}
+#step-status{font-size:11px;color:var(--muted)}
+.tm button:disabled{opacity:.45;cursor:default}
+.tm .tablehead>button{font:inherit;font-size:10px;color:inherit;background:transparent;border:0;padding:7px 8px;cursor:pointer;text-align:right}
+.tm .tablehead>button:focus-visible{outline:2px solid var(--t-accent);outline-offset:-2px}
+.tm .tablehead>button[data-key="team"]{text-align:left}
+.tm .tmtable{overflow-x:auto}
+.tm .tablehead,.tm .tablewrap{min-width:850px}
+.tm .tmbody{height:65vh;min-height:420px}
+.tm .lastmatches{order:-1}
+.tmextras summary,.tmoptions>summary{cursor:pointer;font-size:12px;color:var(--muted);padding:8px 0}
+.tmoptions>summary{padding:10px 18px;border-bottom:1px solid var(--line)}
+.tmextras{margin-top:8px}
+.tmcontext{min-width:0;min-height:0;overflow:auto}
+.tmcontext>summary{font-size:11px;padding:10px 12px;cursor:pointer;color:var(--muted)}
+.tmcontext>.topline{overflow:visible}
+.tmextras .jumps{margin-bottom:6px}
+@media(max-width:1000px){
+  .tm .tmbody{height:auto}
+  .tm .topline{max-height:210px;overflow:auto}
+}
 
 .timebar{background:var(--panel);border-bottom:1px solid var(--line);padding:12px 18px 8px}
 .timebar-top{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap}

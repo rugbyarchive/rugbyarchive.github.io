@@ -867,6 +867,51 @@ function drawerHTML(i) {
     "match from 1871 under World Rugby's points exchange. These are not " +
     "World Rugby's published tables, which begin in 2003.</p>";
 
+  /* ---- 2b. World Rugby's own published ranking ----
+     A SECOND SOURCE, SHOWN ALONGSIDE. Not a check on the block above and not
+     a correction of it. The two count different populations - this archive
+     ranks 177 sides, World Rugby ranks 114 - and World Rugby seeded its
+     ratings in October 2003 while these are replayed from 1871. Same scale,
+     different origin. Sampled over 28 dates they agree on which side was
+     higher 93% of the time and on the actual rank number 26% of the time;
+     both numbers are expected, and neither says one table is wrong.
+     THREE KINDS OF ABSENCE HERE, AND THEY ARE DIFFERENT:
+       before 6 Oct 2003   no published table existed at all
+       side not ranked     World Rugby's table does not include that side
+       one side only       show the one it has, name the one it does not */
+  var WR_FIRST = "2003-10-06";
+  var whr = r[F.home_wr_rank], wha = r[F.away_wr_rank];
+  var whR = r[F.home_wr_rating], waR = r[F.away_wr_rating];
+  var wr;
+  if (r[F.date] < WR_FIRST) {
+    wr = '<p class="none">World Rugby published no ranking before ' +
+      "6 October 2003, so there is nothing to show for this match. The " +
+      "reconstructed figures are this archive's own calculations.</p>";
+  } else if (!r[F.wr_available]) {
+    wr = '<p class="none">Official rankings unavailable for this date.</p>';
+  } else if (whr === null && wha === null) {
+    wr = '<p class="none">World Rugby ranked neither side on this date.</p>';
+  } else {
+    function wrLine(name, pos, pts) {
+      return "<dt>" + esc(name) + "</dt><dd>" +
+        (pos === null
+          ? '<span class="na" title="World Rugby\'s table does not include ' +
+            'this side">not ranked by World Rugby</span>'
+          : "#" + pos + (pts === null ? "" :
+            ' <span class="rt">' + pts.toFixed(2) + "</span>")) + "</dd>";
+    }
+    wr = "<dl>" + wrLine(hn, whr, whR) + wrLine(an, wha, waR) + "</dl>";
+  }
+  /* The explanatory note belongs under numbers. On a pre-2003 match there are
+     none, and "the table as it stood on the day" would then be describing a
+     table that did not exist. */
+  if (r[F.date] >= WR_FIRST && r[F.wr_available]) {
+    wr += '<p class="dnote">World Rugby\'s published table as it stood on the ' +
+      "day of the match. A separate measurement from the archive reconstruction, not " +
+      "a correction of it: World Rugby ranks fewer sides and started its " +
+      "ratings in 2003, so the two use different numbers for the same team.</p>";
+  }
+
   /* ---- 4. record notes ---- */
   var notes = [];
   if (r[F.date_guessed]) {
@@ -904,7 +949,10 @@ function drawerHTML(i) {
   return '<div class="drawer" id="det-' + i + '" role="region"' +
     ' aria-label="Match details">' +
     '<section class="dgroup"><h4>Match context</h4>' + ctx + "</section>" +
-    '<section class="dgroup"><h4>Rankings at kickoff</h4>' + rank + "</section>" +
+    '<section class="dgroup"><h4>This archive&rsquo;s ranking at kickoff</h4>' +
+      rank + "</section>" +
+    '<section class="dgroup"><h4>World Rugby&rsquo;s published ranking</h4>' +
+      wr + "</section>" +
     scoringBlock(r, i) +
     '<section class="dgroup wide"><h4>Record notes</h4>' + noteHTML +
       '<p class="dnote"><button type="button" class="linkbtn copylink"' +
