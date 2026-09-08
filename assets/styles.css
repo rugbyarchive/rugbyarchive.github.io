@@ -20,8 +20,8 @@
   --win-bg:#e6f2ec;
   --draw-bg:#f6efdc;
   --loss-bg:#f8e9e9;
-  --row-h:37px;
-  --drawer-h:132px;
+  --row-h:34px;
+  --table-cols:104px minmax(130px,250px) 86px minmax(130px,250px) minmax(258px,268px) 44px 1fr;
   /* Role tokens. The terminal theme redefines these as syntax-highlight
      colours; the light theme needs its own values or every rule that uses
      one falls back to "inherit" and the row loses all its hierarchy. */
@@ -92,6 +92,12 @@ main{
   display:grid;grid-template-columns:274px minmax(0,1fr);
   height:calc(100vh - 62px);
 }
+/* Give the explorer the space below the actual header, including wrapped nav. */
+@media (min-width:701px){
+  body:has(> main#app){display:flex;flex-direction:column;height:100dvh;overflow:hidden}
+  body:has(> main#app)>.topbar{flex:0 0 auto}
+  main#app{height:auto;min-height:0;flex:1 1 auto}
+}
 
 /* --------------------------------------------------------------- filters */
 .filters{
@@ -154,6 +160,51 @@ select:focus,input:focus{outline:2px solid #b9c9e6;outline-offset:-1px;border-co
 
 /* --------------------------------------------------------------- results */
 .results{display:flex;flex-direction:column;min-width:0;overflow:hidden}
+/* The new role="table" wrapper sits between .results and .tablewrap, so it has
+   to pass the bounded height through or the virtual list loses the definite
+   clientHeight it measures against. */
+.matchtable{display:flex;flex-direction:column;min-height:0;flex:1 1 auto;
+  overflow:hidden}
+/* A floor under the scroller. The analysis cards can be ~470px tall, and on a
+   short window they used to leave the table nothing at all. The cards are
+   worth having, but never at the price of the matches. */
+.results .matchtable{min-height:180px}
+
+/* ------------------------------------------------------------------ hero */
+/* The empty state, and only the empty state. It lives INSIDE the results
+   column rather than above <main>, because main is a fixed
+   height:calc(100vh - 62px) grid - a block above it would have to be paid for
+   out of the table's height on every screen forever, and would break that
+   hard-coded 62px besides. Here it occupies space that is blank anyway when
+   nothing is filtered, and it is gone the moment it would be in the way.
+   Every colour is a token: no literal white, or the terminal theme loses it. */
+.hero{
+  background:var(--panel);border-bottom:1px solid var(--line);
+  padding:14px 18px;
+  display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:24px;
+  align-items:center;flex-shrink:0;
+}
+.hero h2{
+  font-size:20px;line-height:1.25;letter-spacing:-.02em;
+  font-weight:650;color:var(--ink);max-width:none;margin:0;
+}
+.hero-sub{
+  grid-column:1;margin:5px 0 0;max-width:70ch;font-size:12px;line-height:1.4;
+  color:var(--muted);
+}
+.hero-stats{
+  grid-column:2;grid-row:1 / 3;
+  display:flex;flex-wrap:wrap;gap:10px 22px;margin:0;padding:0 0 0 22px;
+  border-left:1px solid var(--line-soft);max-width:430px;
+}
+.hero-stats b{
+  display:block;font-size:20px;font-weight:640;letter-spacing:-.02em;
+  line-height:1.05;color:var(--t-accent);
+}
+.hero-stats span{
+  display:block;margin-top:3px;font-size:9px;text-transform:uppercase;
+  letter-spacing:.07em;color:var(--muted);
+}
 
 .analysis{
   background:var(--panel);border-bottom:1px solid var(--line);
@@ -220,7 +271,6 @@ select:focus,input:focus{outline:2px solid #b9c9e6;outline-offset:-1px;border-co
 .count b{font-size:16px;font-weight:650}
 .count span{color:var(--muted);margin-left:6px;font-size:12px}
 .tablebar-right{display:flex;align-items:center;gap:12px}
-.perf{font-size:11px;color:#9aa5b6;font-family:var(--mono)}
 .ghostbtn{
   padding:5px 10px;border:1px solid var(--line);border-radius:5px;background:#fff;
   font:inherit;font-size:12px;color:var(--navy-2);cursor:pointer;
@@ -242,11 +292,22 @@ select:focus,input:focus{outline:2px solid #b9c9e6;outline-offset:-1px;border-co
   padding:7px 8px;cursor:pointer;user-select:none;white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis;
 }
+/* data-key moved onto the <button> inside the cell, so the old
+   `>div[data-key]` selector matched nothing and `:not([data-key])` matched
+   every heading - killing the hover affordance on exactly the sortable ones. */
 .tablehead>div:hover{color:var(--navy);background:#e5eaf3}
+.tablehead.fx>div:has(.sortbtn):hover{background:rgba(127,127,127,.12)}
 .tablehead>div.sorted{color:var(--navy)}
 .tablehead>div .arrow{opacity:.85}
 
-.tablewrap{flex:1;overflow-y:auto;position:relative;background:#fff}
+/* min-height:0 is what lets this SHRINK inside its flex parent. Without it a
+   flex item's minimum is its content size, so on a short window the scroller
+   refused to give ground, the row above it took everything, and the scroller
+   computed to a height of ZERO - a table with a correct 58,000px spacer and
+   nowhere to draw. It only surfaced once the role="table" wrapper added a
+   second flex level between .results and here. */
+.tablewrap{flex:1 1 auto;min-height:0;overflow-y:auto;position:relative;
+  background:#fff}
 .tablespacer{width:1px}
 .tablebody{position:absolute;top:0;left:0;right:0}
 .trow{
@@ -292,6 +353,16 @@ select:focus,input:focus{outline:2px solid #b9c9e6;outline-offset:-1px;border-co
      unnoticed; it just makes a phone crawl. flex:0 0 auto stops flex-grow
      from overriding the height. */
   .tablewrap{flex:0 0 auto;height:60vh}
+}
+/* Tablet filters use the same reveal control as phones, keeping matches visible. */
+@media (min-width:701px) and (max-width:860px){
+  body:has(>main#app){height:auto;overflow:auto}
+  main#app{flex:none}
+  body:not(.filters-open) #filters{display:none}
+  #filters{max-height:60vh;overflow:auto}
+  .filterbar{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--line)}
+  .hero{display:block;padding:12px 14px}
+  .hero-stats{margin-top:8px;padding:8px 0 0;border-left:0;border-top:1px solid var(--line-soft);max-width:none}
 }
 
 /* =====================================================================
@@ -645,71 +716,207 @@ main.sc{display:block;height:auto;min-height:calc(100vh - 62px)}
    ========================================================================== */
 .tablehead.fx,.trow.fx{
   display:grid;
-  grid-template-columns:
-    112px minmax(150px,1fr) 96px minmax(150px,1fr) 56px 28px;
-  grid-template-rows:20px 17px;
+  /* Written by activeGrid() in app.js from ONE column list, so the head and
+     every row cannot drift apart when an optional column is switched on. */
+  grid-template-columns:var(--table-cols);
   align-items:center;
 }
 .trow.fx{height:var(--row-h);border-bottom:1px solid var(--line-soft)}
-.trow.fx>div{padding:0 6px;overflow:hidden;text-overflow:ellipsis;
-  white-space:nowrap}
-.fx .c-date{grid-area:1/1;font-family:var(--mono);color:var(--t-date);
-  font-size:11.5px;letter-spacing:-.2px}
-.fx .c-when{grid-area:2/1;font-size:10.5px;color:var(--t-meta)}
-/* Each side is one cell. Flexbox keeps flag, rank and name locked together
-   and pushed against the score, so the score column still lines up down the
-   page while nothing floats off on its own. */
-.fx .c-home,.fx .c-away{
-  grid-row:1;display:flex;align-items:center;gap:7px;min-width:0;
-  color:var(--t-team);
+.trow.fx>div{padding:0 8px;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;min-width:0}
+.trow.fx:focus-within{background:var(--line-soft)}
+
+.fx .c-date{font-family:var(--mono);color:var(--t-date);font-size:11.5px;
+  letter-spacing:-.2px;font-variant-numeric:tabular-nums}
+
+/* THE FIXTURE. Both names hug the score - home right-aligned, away
+   left-aligned - so the eye lands on one object instead of crossing the row.
+   Each side is ONE flex cell so the flag and the rank stay locked to the name
+   however short it is. */
+.fx .c-home,.fx .c-away,.fx .c-opp{
+  display:flex;align-items:center;gap:7px;min-width:0;color:var(--t-team);
 }
-.fx .c-home{grid-column:2;justify-content:flex-end}
-.fx .c-away{grid-column:4;justify-content:flex-start}
-.fx .c-home .nm,.fx .c-away .nm{
+.fx .c-home{justify-content:flex-end}
+.fx .c-away,.fx .c-opp{justify-content:flex-start}
+.fx .c-home .nm,.fx .c-away .nm,.fx .c-opp .nm{
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;
 }
+/* THE WINNER. Weight plus an underline, never colour alone - and the loser
+   keeps full contrast, because a defeat is not lesser data. The screen-reader
+   text "(winner)" carries the same fact for anyone who sees neither. */
+/* WEIGHT ONLY. An underline read as a hyperlink, which is a worse lie than
+   no cue at all. Weight is not colour, so this still works in greyscale, and
+   the note above the table says what it means. The loser keeps full contrast:
+   losing is not a data-quality problem. */
+.fx .nm.wnr{font-weight:700}
 .fx .c-home .rk,.fx .c-away .rk{
   font-size:10.5px;color:var(--t-rank);font-variant-numeric:tabular-nums;
   flex:0 0 auto;
 }
-.fx .c-home .fg,.fx .c-away .fg{display:flex;flex:0 0 auto}
-.fx .c-sc{grid-area:1/3;text-align:center;font-family:var(--mono);
-  font-weight:600;color:var(--t-score);font-variant-numeric:tabular-nums;
-  letter-spacing:.02em}
-.fx .c-tag{grid-area:1/5;text-align:right}
-.fx .c-exp{grid-area:1/6;text-align:center;padding:0}
-/* line two - three slots that line up down the whole page */
-.fx .c-venue{grid-area:2/2/2/4;font-size:10.5px;color:var(--t-meta)}
-.fx .c-comp{grid-area:2/4/2/5;font-size:10.5px;color:var(--t-meta)}
-.fx .c-crowd{grid-area:2/5/2/7;font-size:10.5px;color:var(--t-meta);
-  text-align:right;font-variant-numeric:tabular-nums}
+.fx .c-home .rk::before,.fx .c-away .rk::before{content:"#"}
+.fx .c-home .fg,.fx .c-away .fg,.fx .c-opp .fg{display:flex;flex:0 0 auto}
+
+/* THE SCORE carries the most weight on the row. */
+.fx .c-sc{
+  text-align:center;font-family:var(--mono);font-size:14px;font-weight:600;
+  color:var(--t-score);font-variant-numeric:tabular-nums;letter-spacing:.01em;
+}
+.fx .c-sc .wnr{font-weight:800}
+.fx .c-sc .dash{color:var(--t-rank);font-weight:400}
+.fx .c-res{font-size:11px;font-weight:650;letter-spacing:.04em;
+  text-transform:uppercase}
+.fx .c-res.r-won{color:var(--win)}
+.fx .c-res.r-lost{color:var(--loss)}
+.fx .c-res.r-drew{color:var(--draw)}
+.fx .c-loc{font-size:11px;color:var(--t-meta)}
+
+/* MATCH STATUS. Three independent facts as words. Never merged, never
+   colour-only: read them in greyscale and they still say what they say. */
+.fx .c-status{display:flex;align-items:center;gap:4px;overflow:hidden}
+.st{
+  flex:0 0 auto;font-size:9.5px;line-height:1.5;padding:1px 5px;border-radius:3px;
+  border:1px solid var(--line);color:var(--t-meta);white-space:nowrap;
+  letter-spacing:.02em;
+}
+.st-test{color:var(--t-team);border-color:var(--t-rank);font-weight:650}
+.st-nontest{font-style:italic}
+.st-unk{font-style:italic;border-style:dashed}
+.st-rank{border-style:dotted}
+.st-norank{color:var(--loss);border-color:var(--loss)}
+.st-neutral{color:var(--draw);border-color:var(--draw);font-weight:650}
+
+.fx .c-rank{font-size:11px;color:var(--t-meta);font-variant-numeric:tabular-nums;
+  text-align:center}
+.fx .c-comp,.fx .c-venue{font-size:11px;color:var(--t-meta)}
+.fx .c-crowd{font-size:11px;color:var(--t-meta);text-align:right;
+  font-variant-numeric:tabular-nums}
+/* "not recorded" and "not applicable" are different states and look it. */
+.nr{color:var(--t-rank);font-style:italic;opacity:.75}
+.na{color:var(--t-rank);font-style:italic;text-decoration:underline dotted}
+
+.tablehead.fx>div{padding:0 8px}
 .tablehead.fx .c-home{justify-content:flex-end}
-.tablehead.fx .c-away{justify-content:flex-start}
-.fx .loserside{opacity:.62}
-.fx .win{font-weight:650}
+.tablehead.fx .c-sc{text-align:center}
+.sortbtn{
+  background:none;border:0;font:inherit;color:inherit;cursor:pointer;
+  padding:6px 0;letter-spacing:inherit;text-transform:inherit;
+  border-radius:3px;max-width:100%;overflow:hidden;text-overflow:ellipsis;
+}
+.sortbtn:hover{color:var(--ink)}
+.tablehead.fx .sorted{color:var(--t-accent)}
+.tablehead.fx .sorted .sortbtn{font-weight:700}
+.fx .arrow{opacity:.9}
+.fx .c-filler{padding:0}
+/* screen-reader-only */
+.vh{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;
+  clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* Focus must be VISIBLE. Every interactive thing in the table is reachable by
+   keyboard now, which is worth nothing if the reader cannot see where it is. */
+.sortbtn:focus-visible,.expbtn:focus-visible,.fchip:focus-visible,
+.copylink:focus-visible,.ghostbtn:focus-visible,.segbtns button:focus-visible{
+  outline:2px solid var(--t-accent);outline-offset:1px;
+}
+
 .flag{
   display:block;image-rendering:pixelated;border-radius:1px;
   box-shadow:0 0 0 1px rgba(0,0,0,.18);
 }
 .flag-unknown{opacity:.42}
+/* A generous target: the whole cell, not the glyph. */
+/* THE WHOLE CELL IS THE TARGET, which it was not: 8px of cell padding on each
+   side left a 22px-wide button inside a 38px column. The column is 44px now
+   and the cell has no padding, so the target is 44px wide and the full row
+   height tall. */
+.fx .c-exp{padding:0 !important}
 .expbtn{
   border:0;background:none;color:var(--muted);cursor:pointer;font:inherit;
-  font-size:13px;line-height:1;padding:2px 4px;border-radius:3px;
+  font-size:15px;line-height:1;width:100%;height:var(--row-h);
+  border-radius:4px;
 }
 .expbtn:hover{color:var(--ink);background:rgba(127,127,127,.16)}
-.trow.fx.open .expbtn{color:var(--t-accent)}
+.trow.fx.open .expbtn{color:var(--t-accent);background:rgba(127,127,127,.12)}
+
+/* --------------------------------------------------- the filter chip bar */
+.chipbar{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:7px 18px;background:var(--panel);border-bottom:1px solid var(--line);
+}
+.chipbar-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--muted);font-weight:650}
+.chipset{display:flex;gap:5px;flex-wrap:wrap;flex:1 1 auto;min-width:0}
+.fchip{
+  font:inherit;font-size:11.5px;padding:2px 6px 2px 8px;border-radius:11px;
+  border:1px solid var(--line);background:none;color:var(--ink);cursor:pointer;
+  display:inline-flex;align-items:center;gap:5px;
+}
+.fchip:hover{border-color:var(--loss);color:var(--loss)}
+.fchip .x{font-size:13px;line-height:1;color:var(--muted)}
+.fchip:hover .x{color:var(--loss)}
+.fchip.warn{border-color:var(--loss);color:var(--loss);cursor:default}
+.fchip.warn:hover{border-color:var(--loss)}
+
+/* ------------------------------------------- table bar: view and columns */
+.viewswitch,.densityswitch{display:flex;align-items:center;gap:6px}
+.vs-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;
+  color:var(--muted)}
+.segbtns.sm button{font-size:11px;padding:3px 7px}
+.colmenu{position:relative}
+.colpanel{
+  position:absolute;right:0;top:calc(100% + 5px);z-index:6;min-width:196px;
+  background:var(--panel);border:1px solid var(--line);border-radius:6px;
+  padding:8px 10px;box-shadow:0 6px 22px rgba(0,0,0,.28);
+}
+.colpanel label{display:flex;align-items:center;gap:7px;padding:3px 0;
+  font-size:12px;cursor:pointer}
+.colnote{margin:6px 0 0;font-size:10.5px;color:var(--muted)}
+.tablenote{
+  margin:0;padding:5px 18px;font-size:11px;color:var(--muted);
+  background:var(--panel);border-bottom:1px solid var(--line-soft);
+}
+.tableguide{flex:0 0 auto;background:var(--panel);border-bottom:1px solid var(--line-soft)}
+.tableguide>summary{padding:5px 18px;font-size:11px;color:var(--muted);cursor:pointer}
+.tableguide>summary:hover{color:var(--ink)}
+.tableguide>summary:focus-visible{outline:2px solid var(--t-accent);outline-offset:-2px}
+.tableguide .tablenote{border:0;padding-top:2px}
+.tablenote b{color:var(--draw);font-weight:650}
+.tablenote b.wex{color:var(--t-team);font-weight:700}
+.tablenote .phoneonly{display:none}
+
+/* COMPACT DENSITY. The class goes on <html> because app.js reads --row-h from
+   the document element to compute every scroll offset. */
+html.dense{--row-h:27px}
+html.dense .trow.fx{font-size:11.5px}
+html.dense .fx .c-sc{font-size:13px}
+html.dense .st{font-size:9px;padding:0 4px}
+html.dense .expbtn{font-size:14px}
+
+/* The bar carries six controls now; let it wrap as a whole rather than
+   squeezing any one of them onto two lines. */
+.tablebar{flex-wrap:wrap;row-gap:8px}
+.tablebar-right{flex-wrap:wrap;justify-content:flex-end}
+.ghostbtn{white-space:nowrap}
+.tablebar .count{white-space:nowrap}
 
 /* ---------------------------------------------------------- the drawer */
+/* HEIGHT IS NO LONGER FIXED. It used to be a hard 132px, which is why its
+   contents had to be trimmed to fit. app.js measures each one after paint and
+   corrects the scroll model, so the groups can be as long as the record is. */
 .drawer{
-  height:var(--drawer-h);overflow:hidden;background:#f8fafc;
-  border-bottom:1px solid var(--line);font-size:11.5px;
-  display:grid;grid-template-columns:minmax(320px,1.15fr) minmax(300px,1fr);
-  gap:0 26px;padding:8px 14px 8px 18px;
+  background:var(--panel);border-bottom:1px solid var(--line);
+  border-left:3px solid var(--t-accent);font-size:11.5px;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:14px 26px;padding:12px 16px 14px 20px;
 }
+.dgroup{min-width:0}
+.dgroup.wide{grid-column:1/-1}
 .drawer h4{
-  margin:0 0 3px;font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;
-  color:var(--muted);font-weight:650;
+  margin:0 0 5px;font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--t-accent);font-weight:650;
 }
+/* The breakdown is 9 columns wide and must never make the PAGE scroll
+   sideways - it scrolls inside its own group instead. */
+.dscroll{overflow-x:auto}
 .drawer table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
 .drawer th{
   font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);
@@ -722,10 +929,17 @@ main.sc{display:block;height:auto;min-height:calc(100vh - 62px)}
 .drawer .ok{color:var(--win)}
 .drawer .bad{color:var(--loss)}
 .drawer .restate td{color:var(--muted);font-style:italic}
-.drawer dl{margin:0;display:grid;grid-template-columns:74px 1fr;gap:1px 8px}
-.drawer dt{color:var(--muted);font-size:10.5px}
-.drawer dd{margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.drawer .none{color:var(--muted);font-style:italic}
+/* A FIXED label column. `auto` let "Competition or tour" set the width, which
+   then squeezed every value on every row of the list into two lines. */
+.drawer dl{margin:0;display:grid;grid-template-columns:112px 1fr;gap:3px 10px}
+.drawer dt{color:var(--muted);font-size:10.5px;line-height:1.35}
+.drawer dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.drawer .rt{color:var(--t-rank);font-size:10.5px}
+.drawer .none{color:var(--muted);font-style:italic;margin:0}
+.dnote{margin:6px 0 0;font-size:10.5px;color:var(--muted);line-height:1.45}
+.dnotes{margin:0;padding-left:16px;line-height:1.5}
+.dnotes li{margin:1px 0}
+.copylink{font-size:10.5px}
 
 /* ==========================================================================
    TERMINAL THEME — the rest of the site
@@ -858,11 +1072,19 @@ main.sc{display:block;height:auto;min-height:calc(100vh - 62px)}
       40px that the team names need more.
    ========================================================================== */
 @media (max-width:700px){
-  :root{ --row-h:56px; --drawer-h:260px; }
+  :root{ --row-h:52px; }
 
   /* the top bar: let the stats wrap under the title instead of running off */
   .topbar{flex-wrap:wrap;gap:4px 14px;padding:10px 14px}
   .buildinfo{text-align:left;white-space:normal;font-size:10.5px;line-height:1.35}
+  /* On a phone the whole point is to reach the table. The hero keeps its
+     words and loses its air. */
+  .hero{padding:12px 14px;display:block}
+  .hero h2{max-width:none;font-size:16px}
+  .hero-sub{display:none}
+  .hero-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px;padding:8px 0 0;
+    border-left:0;border-top:1px solid var(--line-soft);max-width:none}
+  .hero-stats b{font-size:18px}
   /* the source filename is three words of noise on a 390px screen; the build
      timestamp beside it is not, so only the filename goes */
   .buildinfo .fromwb{display:none}
@@ -901,45 +1123,59 @@ main.sc{display:block;height:auto;min-height:calc(100vh - 62px)}
   .records b{text-align:right;min-width:0}
   .tablebar{padding:8px 14px;gap:8px;flex-wrap:wrap}
 
-  /* ---- the three-line fixture row ---- */
+  /* ---- the phone row: date on top, fixture and score together below ----
+     The brief for the desktop row was "stop the eye travelling"; on a phone
+     the same rule means the fixture and the score must never be split across
+     lines. So: line 1 is the date and the expander, line 2 is the whole
+     fixture, and everything else - status chips included - moves into the
+     expander, where there is room to say it in words. */
+  .chipbar{padding:7px 14px}
+  /* Optional columns do not render on a phone and the row height is fixed by
+     the rules below, so both controls would be switches that do nothing. */
+  .colmenu,.densityswitch{display:none}
+  .tablebar-right{gap:8px}
+  .tablenote{padding:5px 14px;font-size:10.5px}
+  /* The chips are hidden at this width (they live in the expander instead),
+     so the sentence that points at them would be pointing at nothing. */
+  .tablenote .deskonly{display:none}
+  .tablenote .phoneonly{display:inline}
   .tablehead.fx,.trow.fx{
-    grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto 30px;
-    grid-template-rows:17px 23px 16px;
+    grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) 34px !important;
+    grid-template-rows:16px 1fr;
   }
   .trow.fx>div{padding:0 4px}
-  .fx .c-date {grid-area:1/1/2/3;font-size:11px}
-  .fx .c-when {grid-area:1/3/2/4;font-size:10px;text-align:left}
-  .fx .c-tag  {grid-area:1/4/2/5;text-align:right}
-  /* the +/- spans all three lines, which makes it a 56px tap target */
-  .fx .c-exp  {grid-area:1/5/4/6;display:flex;align-items:center;
+  .fx .c-date {grid-area:1/1/2/4;font-size:11px}
+  /* the +/- spans both lines, which makes it a 52px tap target */
+  .fx .c-exp  {grid-area:1/4/3/5;display:flex;align-items:center;
                justify-content:center}
-  .fx .c-home {grid-area:2/1/3/2;justify-content:flex-end}
-  .fx .c-sc   {grid-area:2/2/3/3;font-size:12.5px;padding:0 6px}
-  .fx .c-away {grid-area:2/3/3/5;justify-content:flex-start}
+  .fx .c-home,.fx .c-opp{grid-area:2/1/3/2;justify-content:flex-end}
+  .fx .c-sc   {grid-area:2/2/3/3;font-size:13px;padding:0 6px}
+  .fx .c-away {grid-area:2/3/3/4;justify-content:flex-start}
+  .fx .c-res  {grid-area:2/3/3/4;justify-content:flex-start;font-size:10px}
   .fx .c-home .rk,.fx .c-away .rk{display:none}   /* names need the room */
-  .fx .c-venue{grid-area:3/1/4/3;font-size:10px}
-  .fx .c-comp {grid-area:3/3/4/4;font-size:10px}
-  .fx .c-crowd{grid-area:3/4/4/5;font-size:10px}
-  .tablehead.fx .c-when,.tablehead.fx .c-venue,
-  .tablehead.fx .c-comp,.tablehead.fx .c-crowd{font-size:8.5px}
+  /* Everything below is desktop-only detail; on a phone it lives in the
+     expander instead of being crushed into 390px. */
+  .fx .c-status,.fx .c-rank,.fx .c-venue,.fx .c-comp,.fx .c-crowd,
+  .fx .c-loc,.fx .c-filler{display:none}
+  .tablehead.fx .c-home,.tablehead.fx .c-away,.tablehead.fx .c-sc,
+  .tablehead.fx .c-opp{font-size:8.5px}
 
   /* ---- the drawer stacks, and its table scrolls inside itself ---- */
   .drawer{
     grid-template-columns:1fr;gap:10px 0;padding:8px 12px;
     overflow-y:auto;
   }
-  .drawer>div:first-child{overflow-x:auto}
-  .drawer table{min-width:300px}
-  .drawer dl{grid-template-columns:66px 1fr}
+  .drawer table{min-width:280px}
+  .drawer dl{grid-template-columns:76px 1fr}
 }
 
-/* The filter toggle is a phone-only control. Hiding it must be scoped to wide
+/* The filter toggle is a phone and tablet control. Hiding it must be scoped to wide
    screens: a bare `.filterbar{display:none}` after the media query has equal
    specificity and later source order, so it wins everywhere and the button
    vanishes on the phones it exists for. Also make sure a stale
    body.filters-open from a narrow window cannot hide the panel once the
    window is widened again. */
-@media (min-width:701px){
+@media (min-width:861px){
   .filterbar{display:none}
   body.filters-open .filters{display:block}
 }

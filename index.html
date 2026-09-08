@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Every international rugby union match since 1871 in one table, with stackable filters and live aggregates: team, opponent, era, venue, margin, day of week and world ranking at the time.">
+<meta name="description" content="Every match a national side or touring team has played since the first international in 1871 - Tests and tour fixtures alike - in one table, with stackable filters and live aggregates: team, opponent, era, venue, margin, day of week and world ranking at the time.">
 <meta name="theme-color" content="#1f3864">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Rugby Archive">
 <meta property="og:title" content="Rugby Archive — the Super Filter">
-<meta property="og:description" content="Every international rugby union match since 1871 in one table, with stackable filters and live aggregates: team, opponent, era, venue, margin, day of week and world ranking at the time.">
+<meta property="og:description" content="Every match a national side or touring team has played since the first international in 1871 - Tests and tour fixtures alike - in one table, with stackable filters and live aggregates: team, opponent, era, venue, margin, day of week and world ranking at the time.">
 <meta name="twitter:card" content="summary">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231f3864'/%3E%3Cellipse cx='16' cy='16' rx='11' ry='7' transform='rotate(-35 16 16)' fill='none' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M11 21 L21 11' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M13.5 16.5 L15.5 18.5 M16.5 13.5 L18.5 15.5' stroke='%23fff' stroke-width='1.6'/%3E%3C/svg%3E">
 <title>Rugby Archive — the Super Filter</title>
@@ -249,6 +249,32 @@
       <span class="fcount" id="filtercount"></span>
     </div>
 
+    <!-- THE FRONT DOOR. Shown only when nothing at all is filtered, which is
+         exactly when the stats cards below are hidden - so it costs no
+         vertical space that was being used, and the 100vh app shell keeps its
+         arithmetic. Pick a team, or set any filter, and it gets out of the way
+         and the real analysis takes its place. -->
+    <section class="hero" id="hero" hidden>
+      <!-- NOT "every international match". 1,422 of the 11,243 rows are not
+           matches between two countries - tour fixtures against provinces,
+           clubs and franchises are in the register whenever a country or a
+           touring composite is on the other side, and the very first row on
+           this page is Sharks 0-54 New Zealand. The date is anchored to the
+           first international instead, which is what 1871 actually marks. -->
+      <h2>Every match, from the first international in 1871.</h2>
+      <p class="hero-sub">Follow a rivalry. Revisit an era. Find the match
+         that changes how you see the game.</p>
+      <div class="hero-stats">
+        <div><b id="hero-matches">&ndash;</b><span>recorded matches</span></div>
+        <!-- NOT "teams & touring sides": only 208 of the 612 are countries or
+             touring composites. 296 are clubs, provinces and franchises and 104
+             are invitational XVs - Wairarapa-Bush and Gloucestershire, not just
+             the Lions. "Sides on the record" claims nothing about what they are. -->
+        <div><b id="hero-teams">&ndash;</b><span>sides on the record</span></div>
+        <div><b id="hero-years">&ndash;</b><span>years of international rugby</span></div>
+      </div>
+    </section>
+
     <div class="analysis" id="analysis">
       <div class="analysis-head">
         <h2 id="an-title">Every match</h2>
@@ -313,28 +339,89 @@
       </div>
     </div>
 
+    <!-- THE FILTER SUMMARY. Until now the only confirmation of what was
+         filtered was a sentence in the analysis header, which vanished the
+         moment you scrolled. These are the same filters as removable chips,
+         so what is on screen is always accounted for and any one of them can
+         be dropped without hunting for its control in the panel. -->
+    <div class="chipbar" id="chipbar" hidden>
+      <span class="chipbar-label">Showing</span>
+      <div class="chipset" id="chipset"></div>
+      <button type="button" id="chipclear" class="linkbtn">Clear all</button>
+    </div>
+
     <div class="tablebar">
       <div class="count"><b id="rowcount">0</b> matches<span id="pctall"></span></div>
       <div class="tablebar-right">
-        <span class="perf" id="perf"></span>
-        <button type="button" id="export" class="ghostbtn">Download this list as CSV</button>
+        <div class="viewswitch" id="viewswitch" hidden>
+          <span class="vs-label" id="vs-label">Perspective</span>
+          <div class="segbtns sm" id="f-view">
+            <button type="button" data-v="fixture" class="on">As listed</button>
+            <button type="button" data-v="team" id="vs-team">Team view</button>
+          </div>
+        </div>
+        <div class="densityswitch">
+          <span class="vs-label">Rows</span>
+          <div class="segbtns sm" id="f-density">
+            <button type="button" data-v="compact">Compact</button>
+            <button type="button" data-v="comfortable" class="on">Comfortable</button>
+          </div>
+        </div>
+        <div class="colmenu">
+          <button type="button" id="colbtn" class="ghostbtn" aria-expanded="false"
+                  aria-controls="colpanel">Columns</button>
+          <div class="colpanel" id="colpanel" hidden role="group"
+               aria-label="Optional columns">
+            <label><input type="checkbox" data-col="rank"> Rank before match</label>
+            <label><input type="checkbox" data-col="comp"> Competition</label>
+            <label><input type="checkbox" data-col="venue"> Venue</label>
+            <label><input type="checkbox" data-col="crowd"> Attendance</label>
+            <p class="colnote">Remembered on this device.</p>
+          </div>
+        </div>
+        <button type="button" id="expandall" class="ghostbtn">Expand all</button>
+        <button type="button" id="export" class="ghostbtn">Export</button>
       </div>
     </div>
 
-    <div class="tablehead" id="tablehead"></div>
-    <div class="tablewrap" id="tablewrap">
-      <div class="tablespacer" id="tablespacer"></div>
-      <div class="tablebody" id="tablebody"></div>
-      <div class="empty" id="empty" hidden>
-        <p>No matches fit all of those filters at once.</p>
-        <p class="sub">Loosen one of them — or that combination genuinely never happened.</p>
+    <!-- Home and Away are the fixture as it was LISTED. At a World Cup or any
+         other neutral ground that ordering carries no home advantage, which is
+         why the neutral flag is shown separately on the row rather than being
+         folded into it. Said here once, in the open, instead of leaving the
+         reader to guess from two column headings. -->
+    <details class="tableguide">
+    <summary>How to read this table</summary>
+    <p class="tablenote" id="tablenote">Home and Away are how the fixture was
+       listed, not proof of home advantage.<span class="deskonly"> Matches at a
+       neutral ground are marked <b>Neutral</b>.</span><span class="phoneonly">
+       Open a match to see whether it was a Test, whether it moved the
+       rankings, and whether the ground was neutral.</span> The
+       <b class="wex">winning side</b> is shown in bolder type.</p>
+    </details>
+    <!-- role="table" gives the heading row and the body rows a common owner.
+         Without it the rows carried role="row" with nothing above them, which
+         leaves every cell role-less and the grid invisible to a screen
+         reader. The spacer is a scrollbar prop with no content, so it is
+         hidden from the tree rather than being read as an empty row. -->
+    <div class="matchtable" role="table"
+         aria-label="Matches matching the current filters">
+      <div class="tablehead" id="tablehead" role="row"></div>
+      <div class="tablewrap" id="tablewrap">
+        <div class="tablespacer" id="tablespacer" aria-hidden="true"></div>
+        <div class="tablebody" id="tablebody" role="rowgroup"></div>
+        <div class="empty" id="empty" hidden>
+          <p>No matches fit all of those filters at once.</p>
+          <p class="sub">Loosen one of them — or that combination genuinely never happened.</p>
+        </div>
       </div>
     </div>
+    <!-- Filtering from 11,243 matches down to none was a silent event. -->
+    <p class="vh" id="livecount" role="status" aria-live="polite"></p>
   </section>
 
 </main>
 
-<script src="data/archive-data.js" onerror="window.__dataFailed=true"></script>
+<script src="data/archive-data.js?v=20260908" onerror="window.__dataFailed=true"></script>
 <script src="assets/flags.js"></script>
 <script src="assets/app.js"></script>
 </body>

@@ -222,7 +222,13 @@ var SORTERS = {
   row: function (i) { return ROWS[i][F.excel_row]; }
 };
 var TEXT_SORT = { home: F.home, away: F.away, comp: F.competition,
-                  venue: F.stadium };
+                  venue: "venue" };
+
+/* The side that is NOT the selected team. Used by team view and by the sort
+   that backs its Opponent column. */
+function opponentName(r) {
+  return r[F.home] === S.teamI ? awayName(r) : homeName(r);
+}
 
 function sortView() {
   var view = Array.prototype.slice.call(idx.subarray(0, idxLen));
@@ -238,7 +244,20 @@ function sortView() {
     // Team columns sort on the DISPLAYED name, not the ranked identity -
     // otherwise a row reading "Soviet Union" files itself under R for Russia
     // and the A-Z is one the reader cannot see.
-    var nameOf = fi === F.home ? homeName : (fi === F.away ? awayName : null);
+    /* IN TEAM VIEW THE "AWAY" COLUMN IS HEADED "Opponent", and the opponent
+       is whichever side is not the selected team - so half the rows would
+       sort on the wrong name if this kept reading the away slot. The heading
+       and the sort must mean the same thing or the A-Z is a lie. */
+    var nameOf = fi === F.home ? homeName
+      : (fi === F.away ? (teamView() ? opponentName : awayName)
+      /* THE VENUE COLUMN IS NOT THE STADIUM COLUMN. It renders stadium, or
+         city if there is no stadium, or country if there is neither. Sorting
+         on the stadium field alone put the 724 rows that have a city but no
+         stadium at the very end under \uffff, so the tail of an A-Z read
+         "Johannesburg, Pietermaritzburg, Grahamstown, Cape Town" with nothing
+         to explain why. The sort now reads exactly what the cell prints. */
+      : (fi === "venue" ? function (r) { return context(r).venue || ""; }
+      : null));
     var lut = fi === F.competition ? LK.competition : LK.stadium;
     view.sort(function (x, y) {
       var sx, sy;
@@ -303,8 +322,10 @@ function analyse(view) {
 }
 
 // ------------------------------------------------------------ formatting
+/* ONE FORMAT. This printed "8 Aug 2026" while the table printed "08 Aug 2026"
+   two inches away on the same screen. */
 function fmtDate(s) {
-  return +s.slice(8, 10) + " " + MONTHS[+s.slice(5, 7) - 1] + " " + s.slice(0, 4);
+  return s.slice(8, 10) + " " + MONTHS[+s.slice(5, 7) - 1] + " " + s.slice(0, 4);
 }
 function fmtNum(n) { return n.toLocaleString("en-GB"); }
 function pct(a, b) { return b ? (100 * a / b).toFixed(1) + "%" : "–"; }
@@ -328,20 +349,125 @@ function esc(s) {
    heights - and the virtual table below computes scroll position from ONE
    fixed height. That is the same trap the drawer has to avoid, which is why
    the drawer is a fixed height too. */
-var COLS = [
-  { key: "date",   label: "Date",    cls: "c-date" },
-  { key: "home",   label: "Home",    cls: "c-home" },
-  { key: "margin", label: "Score",   cls: "c-sc", tip: "Sort by winning margin" },
-  { key: "away",   label: "Away",    cls: "c-away" },
-  { key: "",       label: "Tags",    cls: "c-tag", nosort: true },
-  { key: "",       label: "",        cls: "c-exp", nosort: true },
-  /* line two carries its own labels, so the reader knows what the small
-     grey text under each fixture actually is */
-  { key: "",       label: "Day",         cls: "c-when",  nosort: true },
-  { key: "",       label: "Venue",       cls: "c-venue", nosort: true },
-  { key: "",       label: "Competition", cls: "c-comp",  nosort: true },
-  { key: "",       label: "Crowd",       cls: "c-crowd", nosort: true }
-];
+/* ==========================================================================
+   THE ROW
+   Rebuilt 7 Sep 2026. What it replaces, and why, because the old shape was
+   defensible and this is a real change of mind:
+
+   The old row was TWO LINES - fixture on top, and day / venue / competition /
+   crowd underneath in three slots that lined up down the page. It was dense
+   and it scanned well vertically. Its failure was horizontal. The date sat at
+   the far left, the fixture floated in the middle of a wide screen and the
+   expander was pinned to the far right, so reading one match meant crossing
+   the whole window three times. Everything on line two was secondary, and it
+   was being paid for in the one dimension the reader cannot avoid.
+
+   Now: ONE line, six things, packed left, and everything secondary moved into
+   the expander or behind an optional column the reader turns on deliberately.
+
+       Date | Home-listed | Score | Away-listed | Status | +
+
+   The four questions a collapsed row must answer without help - when, who,
+   what score, what kind of match - are the four things left.
+   ========================================================================== */
+
+/* Optional columns. OFF by default and remembered per device: the reader asked
+   for them, so they are never a surprise, and the default row stays the one
+   that answers the four questions and nothing else. */
+var OPT = { rank: false, comp: false, venue: false, crowd: false };
+var DENSITY = "comfortable";
+var VIEWMODE = "fixture";        // or "team", when a team is selected
+var PREF_KEY = "rugby-table-prefs";
+
+function loadPrefs() {
+  try {
+    var raw = localStorage.getItem(PREF_KEY);
+    if (!raw) return;
+    var o = JSON.parse(raw);
+    if (o && o.opt) {
+      Object.keys(OPT).forEach(function (k) {
+        if (typeof o.opt[k] === "boolean") OPT[k] = o.opt[k];
+      });
+    }
+    if (o && (o.density === "compact" || o.density === "comfortable")) {
+      DENSITY = o.density;
+    }
+    if (o && (o.view === "fixture" || o.view === "team")) VIEWMODE = o.view;
+  } catch (e) { /* private mode, or a policy that refuses storage */ }
+}
+function savePrefs() {
+  try {
+    localStorage.setItem(PREF_KEY, JSON.stringify(
+      { opt: OPT, density: DENSITY, view: VIEWMODE }));
+  } catch (e) { /* never worth throwing over a display preference */ }
+}
+loadPrefs();
+
+/* TEAM VIEW. Only reachable with a team selected, and only ever offered then,
+   because "Result" and "keep their score first" have no meaning without a
+   point of view. The heading says whose point of view it is - an unlabelled
+   perspective is worse than none. */
+function teamView() { return VIEWMODE === "team" && S.teamI >= 0; }
+
+/* Column widths are declared here and turned into a grid-template in one
+   place, so the head and every row cannot drift apart. The trailing `filler`
+   is what stops the fixture floating: with no flexible column switched on,
+   the empty space collects at the RIGHT of the row instead of being shared
+   out between date, fixture and expander. */
+function activeCols() {
+  var cols = [];
+  cols.push({ key: "date", label: "Date", cls: "c-date", w: "104px",
+              tip: "Sort by date" });
+  if (teamView()) {
+    cols.push({ key: "away", label: "Opponent", cls: "c-opp",
+                w: "minmax(130px,250px)", tip: "Sort by opponent" });
+    cols.push({ key: "", label: "Result", cls: "c-res", w: "58px",
+                nosort: true });
+    cols.push({ key: "margin", label: "Score", cls: "c-sc", w: "86px",
+                tip: "Sort by winning margin" });
+    cols.push({ key: "", label: "Location", cls: "c-loc", w: "minmax(90px,140px)",
+                nosort: true });
+  } else {
+    cols.push({ key: "home", label: "Home", cls: "c-home",
+                w: "minmax(130px,250px)", tip: "Sort by the home-listed team" });
+    cols.push({ key: "margin", label: "Score", cls: "c-sc", w: "86px",
+                tip: "Sort by winning margin" });
+    cols.push({ key: "away", label: "Away", cls: "c-away",
+                w: "minmax(130px,250px)", tip: "Sort by the away-listed team" });
+  }
+  /* WIDE ENOUGH FOR THREE CHIPS, MEASURED RATHER THAN GUESSED. Twice now this
+     column has been set to a width that "looked like enough" and twice the
+     third chip was silently eaten by overflow:hidden - a row that WAS played
+     at a neutral ground simply did not say so, which is the exact ambiguity
+     this column exists to remove. The worst case that occurs in the data is
+     "Not a Test" + "No rating change" + "Neutral", which measures 255px with
+     its gaps and cell padding. The cell also carries a title with all three
+     statuses spelled out, so even an unforeseen combination degrades to
+     hover-and-read rather than to silence. */
+  cols.push({ key: "", label: "Match status", cls: "c-status",
+              w: "minmax(258px,268px)", nosort: true });
+  cols.push({ key: "", label: "", cls: "c-exp", w: "44px", nosort: true,
+              head: '<span class="vh">Show match details</span>' });
+  if (OPT.rank) {
+    cols.push({ key: "", label: "Rank before match", cls: "c-rank", w: "150px",
+                nosort: true });
+  }
+  if (OPT.comp) {
+    cols.push({ key: "comp", label: "Competition", cls: "c-comp",
+                w: "minmax(140px,1fr)" });
+  }
+  if (OPT.venue) {
+    cols.push({ key: "venue", label: "Venue", cls: "c-venue",
+                w: "minmax(150px,1fr)" });
+  }
+  if (OPT.crowd) {
+    cols.push({ key: "", label: "Attendance", cls: "c-crowd", w: "96px",
+                nosort: true });
+  }
+  cols.push({ key: "", label: "", cls: "c-filler", w: "1fr", nosort: true });
+  return cols;
+}
+var COLS = activeCols();
 
 var head = document.getElementById("tablehead");
 var wrap = document.getElementById("tablewrap");
@@ -350,21 +476,15 @@ var bodyEl = document.getElementById("tablebody");
 var emptyEl = document.getElementById("empty");
 /* Row geometry lives in the STYLESHEET, not here. The virtual table computes
    scroll offsets arithmetically, so if CSS and JS ever disagree about how
-   tall a row is, rows silently overlap or leave gaps - and nothing throws.
-   Reading the custom properties keeps one source of truth, which is what
-   lets the phone breakpoint use a taller three-line row safely. */
-var ROW_H = 37;
-var DRAWER_H = 132;
+   tall a row is, rows silently overlap or leave gaps - and nothing throws. */
+var ROW_H = 34;
 function readMetrics() {
   var cs = getComputedStyle(document.documentElement);
   var r = parseFloat(cs.getPropertyValue("--row-h"));
-  var d = parseFloat(cs.getPropertyValue("--drawer-h"));
   var changed = false;
   if (r > 0 && r !== ROW_H) { ROW_H = r; changed = true; }
-  if (d > 0 && d !== DRAWER_H) { DRAWER_H = d; changed = true; }
   return changed;
 }
-readMetrics();
 var view = [];
 var open = {};                 // data-row index -> true. Survives re-filtering.
 
@@ -372,20 +492,50 @@ function flag(name) {
   return window.RUGBY_FLAGS ? window.RUGBY_FLAGS.svg(name) : "";
 }
 
-function drawHead() {
-  head.className = "tablehead fx";
-  head.innerHTML = COLS.map(function (c) {
-    var on = !c.nosort && c.key && S.sort === c.key;
-    return '<div class="' + c.cls + (on ? " sorted" : "") + '"' +
-      (c.key ? ' data-key="' + c.key + '"' : "") +
-      (c.tip ? ' title="' + esc(c.tip) + '"' : "") + ">" + esc(c.label) +
-      (on ? ' <span class="arrow">' + (S.dir < 0 ? "▼" : "▲") +
-      "</span>" : "") + "</div>";
-  }).join("");
+function applyGrid() {
+  var t = COLS.map(function (c) { return c.w; }).join(" ");
+  document.documentElement.style.setProperty("--table-cols", t);
+  /* ON <html>, NOT ON <body>. readMetrics() reads --row-h off the document
+     element, so a density class on body would change nothing it can see and
+     the rows would keep their old height while the CSS drew a new one - which
+     is precisely how a virtual list tears. */
+  document.documentElement.classList.toggle("dense", DENSITY === "compact");
+  readMetrics();
 }
 
-/* Everything line 2 knows about a match, as one object, so the row builder
-   and the drawer cannot disagree about what exists. */
+/* The sort indicator is a WORD as well as an arrow, and the heading is a real
+   button: sorting was previously reachable only with a mouse. */
+function drawHead() {
+  head.className = "tablehead fx";
+  var refocus = grabFocus();
+  head.innerHTML = COLS.map(function (c) {
+    var on = !c.nosort && c.key && S.sort === c.key;
+    var label = c.head || esc(c.label);
+    if (c.nosort || !c.key) {
+      return '<div class="' + c.cls + '" role="columnheader">' + label + "</div>";
+    }
+    /* aria-sort IS ONLY HONOURED ON role="columnheader". It used to sit on the
+       <button> inside the cell, where no screen reader reads it, so the sort
+       state was announced to nobody. Every sortable column now declares its
+       state, "none" included - a reader needs to know which columns COULD be
+       sorted, not only which one is. */
+    return '<div class="' + c.cls + (on ? " sorted" : "") + '"' +
+      ' role="columnheader" aria-sort="' +
+      (on ? (S.dir < 0 ? "descending" : "ascending") : "none") + '">' +
+      '<button type="button" class="sortbtn" data-key="' + c.key + '"' +
+      ' title="' + esc(c.tip || ("Sort by " + c.label)) + '"' +
+      ' aria-label="' + esc(c.tip || ("Sort by " + c.label)) + '"' +
+      ">" + label +
+      (on ? ' <span class="arrow" aria-hidden="true">' +
+            (S.dir < 0 ? "▼" : "▲") + "</span>" : "") +
+      "</button></div>";
+  }).join("");
+  restoreFocus(refocus);
+  syncHeadScroll();
+}
+
+/* Everything a match knows about itself, as one object, so the row builder and
+   the expander cannot disagree about what exists. */
 function context(r) {
   var stad = r[F.stadium] !== null ? LK.stadium[r[F.stadium]] : null;
   var city = r[F.city] !== null ? LK.city[r[F.city]] : null;
@@ -401,53 +551,175 @@ function context(r) {
     crowd: r[F.attendance]
   };
 }
-function hasDetail(r, i) {
-  var c = context(r);
-  return !!(c.venue || c.comp || c.trophy || c.crowd || BREAK[i]);
+/* EVERY row can be expanded now. It used to depend on there being a venue, a
+   competition, a crowd or a breakdown - so the rows with least recorded, which
+   are exactly the rows a reader most wants explained, were the ones with no
+   way to ask. The expander now always opens, and says plainly what is not
+   recorded. */
+
+/* --------------------------------------------------------- match status
+   THREE INDEPENDENT FACTS, NEVER MERGED INTO ONE.
+     Test status        the workbook's own Is Full International
+     Ranking            whether the match moved a rating
+     Neutral venue      whether the ground was neutral
+   A single "classification" would have to invent a rule for combining them,
+   and the whole reason this archive keeps them apart is that they genuinely
+   disagree - a Lions Test is a Test that moves no rating. Words, not colour:
+   every chip is readable with the colour removed. */
+/* The same three facts as plain prose, for the cell's title and for anywhere
+   the chips cannot be shown - the phone row, most obviously. */
+function statusText(r) {
+  var fi = r[F.full_intl];
+  return (fi === null ? "Test status not established"
+                      : (fi ? "A full international (Test)"
+                            : "Not a full international")) +
+    " · " + (r[F.eligible] ? "this result moved both world ratings"
+                           : "no rating moved") +
+    (r[F.neutral] ? " · played at a neutral ground, so Home and Away are the "
+                    + "fixture as listed" : "");
+}
+
+function statusChips(r) {
+  var out = "";
+  var fi = r[F.full_intl];
+  if (fi === null) {
+    out += '<span class="st st-unk" title="The workbook records no answer for ' +
+           'this row">Test status not established</span>';
+  } else if (fi) {
+    out += '<span class="st st-test" title="A full international - the ' +
+           'workbook\'s own Is Full International column says so">Test</span>';
+  } else {
+    out += '<span class="st st-nontest" title="Not a full international - a ' +
+           'tour or representative fixture">Not a Test</span>';
+  }
+  out += r[F.eligible]
+    ? '<span class="st st-rank" title="This result moved both sides\' world ' +
+      'ratings">Rating counts</span>'
+    : '<span class="st st-norank" title="' +
+      (r[F.match_class] === 0
+        ? "No rating moved. Both sides are countries, but this match is "
+          + "excluded by name in the master workbook."
+        : "No rating moved: the rankings only change when both sides are "
+          + "countries.") + '">No rating change</span>';
+  if (r[F.neutral]) {
+    out += '<span class="st st-neutral" title="Played at a neutral ground, so ' +
+           'the Home and Away columns are fixture ordering only">Neutral</span>';
+  }
+  return out;
+}
+
+/* "08 Aug 2026". Sorting is untouched - it runs on ORD, an integer built from
+   the ISO string, so what the reader sees and what the sort uses are
+   deliberately different things. */
+function rowDate(iso) {
+  return iso.slice(8, 10) + " " + MONTHS[+iso.slice(5, 7) - 1] + " " +
+         iso.slice(0, 4);
+}
+
+function sideCell(cls, name, won, alignEnd) {
+  var fg = '<span class="fg">' + flag(name) + "</span>";
+  var nm = '<span class="nm' + (won ? " wnr" : "") + '" title="' + esc(name) +
+           '">' + esc(name) +
+           (won ? '<span class="vh"> (winner)</span>' : "") + "</span>";
+  /* NO INLINE RANK BADGE. The brief asked for "a ranking column labelled Rank
+     before match, rather than unexplained numbers beside names", and a bare
+     "#7" against a team name is exactly the unexplained number it named. It
+     was also backwards: the badge showed by DEFAULT and switching the column
+     ON removed it. Ranks now live in one place, under a heading that says
+     what they are. */
+  return '<div role="cell" class="' + cls + '">' +
+         (alignEnd ? nm + fg : fg + nm) + "</div>";
 }
 
 function rowHTML(i, k) {
   var r = ROWS[i];
   var hs = r[F.home_score], as = r[F.away_score];
+  var hn = homeName(r), an = awayName(r);
   var hw = hs > as, aw = as > hs;
-  var c = context(r);
-  var hr = r[F.home_rank_before], ar = r[F.away_rank_before];
-  var tags = (r[F.world_cup] ? '<span class="tag rwc">RWC</span>' : "") +
-             (r[F.neutral] ? '<span class="tag">N</span>' : "");
-  /* 167 dates in the archive are typed as text and could genuinely mean two
-     different days. Printing "Saturday" on those states something the data
-     cannot support, so they show the date alone. */
-  var when = r[F.date_guessed] ? "" : DAYS[DOW[i]];
   var isOpen = !!open[i];
-  return '<div class="trow fx' + (isOpen ? " open" : "") + '" data-i="' + i + '">' +
-    '<div class="c-date">' + r[F.date] + "</div>" +
-    '<div class="c-when">' + esc(when) + "</div>" +
-    /* Each side is ONE cell, not three, so the flag and the ranking sit hard
-       against the name however short the name is. Three separate grid columns
-       left "(207)" and the flag stranded at the far left of a 1fr column. */
-    '<div class="c-home ' + (hw ? "win" : (aw ? "loserside" : "")) + '">' +
-      '<span class="fg">' + flag(homeName(r)) + "</span>" +
-      '<span class="rk">' + (hr === null ? "" : "(" + hr + ")") + "</span>" +
-      '<span class="nm" title="' + esc(homeName(r)) + '">' +
-        esc(homeName(r)) + "</span></div>" +
-    '<div class="c-sc">' + hs + " – " + as + "</div>" +
-    '<div class="c-away ' + (aw ? "win" : (hw ? "loserside" : "")) + '">' +
-      '<span class="nm" title="' + esc(awayName(r)) + '">' +
-        esc(awayName(r)) + "</span>" +
-      '<span class="rk">' + (ar === null ? "" : "(" + ar + ")") + "</span>" +
-      '<span class="fg">' + flag(awayName(r)) + "</span></div>" +
-    '<div class="c-tag">' + tags + "</div>" +
-    '<div class="c-exp">' + (hasDetail(r, i)
-      ? '<button type="button" class="expbtn" data-exp="' + i +
-        '" aria-expanded="' + isOpen + '" title="Show the detail">' +
-        (isOpen ? "−" : "+") + "</button>"
-      : "") + "</div>" +
-    '<div class="c-venue" title="' + esc(c.venue || "") + '">' +
-      esc(c.venue || "") + "</div>" +
-    '<div class="c-comp" title="' + esc(c.comp || "") + '">' +
-      esc(c.comp || "") + "</div>" +
-    '<div class="c-crowd">' + (c.crowd ? fmtNum(c.crowd) : "") + "</div>" +
-    "</div>" + (isOpen ? drawerHTML(i) : "");
+  var c = context(r);
+  var cells = '<div role="cell" class="c-date"><time datetime="' + r[F.date] + '">' +
+              rowDate(r[F.date]) + "</time></div>";
+
+  if (teamView()) {
+    var mine = r[F.home] === S.teamI;
+    var myScore = mine ? hs : as, theirScore = mine ? as : hs;
+    var oppName = opponentName(r);
+    var res = myScore > theirScore ? "Won" : (myScore < theirScore ? "Lost" : "Drew");
+    var loc = r[F.neutral] ? "Neutral" : (mine ? "Home" : "Away");
+    cells += '<div role="cell" class="c-opp"><span class="fg">' + flag(oppName) +
+             '</span><span class="nm" title="' + esc(oppName) + '">' +
+             esc(oppName) + "</span></div>" +
+      '<div role="cell" class="c-res r-' + res.toLowerCase() + '">' + res + "</div>" +
+      /* The selected team's score comes FIRST - that is the perspective the
+         header names - but the bold still marks the WINNER, the same as the
+         fixture view. Bolding "my score" would mean two different things in
+         two views, and the reader would have to know which they were in. */
+      '<div role="cell" class="c-sc"><span class="' + (myScore > theirScore ? "wnr" : "") +
+        '">' + myScore + '</span><span class="dash"> – </span><span class="' +
+        (theirScore > myScore ? "wnr" : "") + '">' + theirScore +
+        "</span></div>" +
+      '<div role="cell" class="c-loc">' + loc + "</div>";
+  } else {
+    cells += sideCell("c-home", hn, hw, true) +
+      '<div role="cell" class="c-sc">' +
+        '<span class="' + (hw ? "wnr" : "") + '">' + hs + "</span>" +
+        '<span class="dash"> – </span>' +
+        '<span class="' + (aw ? "wnr" : "") + '">' + as + "</span></div>" +
+      sideCell("c-away", an, aw, false);
+  }
+
+  cells += '<div role="cell" class="c-status" title="' + esc(statusText(r)) + '">' +
+    statusChips(r) + "</div>" +
+    '<div role="cell" class="c-exp">' +
+      '<button type="button" class="expbtn" data-exp="' + i + '"' +
+      ' id="exp-' + r[F.excel_row] + '"' +
+      ' aria-expanded="' + isOpen + '" aria-controls="det-' + i + '"' +
+      ' aria-label="Show match details for ' + esc(hn) + " versus " +
+      esc(an) + " on " + rowDate(r[F.date]) + '">' +
+      '<span aria-hidden="true">' + (isOpen ? "−" : "+") + "</span></button></div>";
+
+  if (OPT.rank) {
+    /* In team view the two ranks are shown in the SAME ORDER as the score -
+       the selected team first. Leaving them as home-v-away would have the two
+       columns disagree about which number belongs to whom. */
+    var hr = r[F.home_rank_before], ar = r[F.away_rank_before];
+    if (teamView() && r[F.home] !== S.teamI) { var t2 = hr; hr = ar; ar = t2; }
+    cells += '<div role="cell" class="c-rank">' +
+      (hr === null && ar === null
+        ? '<span class="na" title="Neither side had a rating yet">no rating ' +
+          "yet</span>"
+        : (hr === null ? '<span class="na" title="No rating yet">n/a</span>' : hr) +
+          " v " +
+          (ar === null ? '<span class="na" title="No rating yet">n/a</span>' : ar)) +
+      "</div>";
+  }
+  if (OPT.comp) {
+    cells += '<div role="cell" class="c-comp" title="' + esc(c.comp || "") + '">' +
+      (c.comp ? esc(c.comp) : '<span class="nr">not recorded</span>') + "</div>";
+  }
+  if (OPT.venue) {
+    cells += '<div role="cell" class="c-venue" title="' + esc(c.venue || "") + '">' +
+      (c.venue ? esc(c.venue) : '<span class="nr">not recorded</span>') + "</div>";
+  }
+  if (OPT.crowd) {
+    /* The same two kinds of absence the expander is built around. An awarded
+       or walked-over match HAS no crowd; every other blank is simply not
+       established. One dash for both threw that distinction away in the one
+       place a reader scans it in bulk. */
+    var awarded = /awarded|walkover|abandon/i.test(c.type || "");
+    cells += '<div role="cell" class="c-crowd" title="' +
+      (c.crowd ? fmtNum(c.crowd) + " recorded"
+        : (awarded ? "Not applicable - this match was awarded or never played"
+                   : "Attendance has never been established for this match")) +
+      '">' + (c.crowd ? fmtNum(c.crowd)
+        : (awarded ? '<span class="na">n/a</span>'
+                   : '<span class="nr">–</span>')) + "</div>";
+  }
+  cells += '<div role="cell" class="c-filler"></div>';
+
+  return '<div class="trow fx' + (isOpen ? " open" : "") + '" data-i="' + i +
+    '" role="row">' + cells + "</div>" + (isOpen ? drawerHTML(i) : "");
 }
 
 /* ------------------------------------------------------------- the drawer */
@@ -457,7 +729,13 @@ var BO = (SC && SC.breakdown_order) || [];
 var HALF = BO.length ? BO.length / 2 : 6;
 var BD_HEAD = ["Tries", "Conv", "Pen", "Drop", "Mark", "Pen try"];
 
+/* NULL BEFORE THE FIRST TABLE. This used to fall back to SC.rows[0], whose
+   from_year is 1885 - so a match in 1871 was scored under an 1885 table, its
+   own recorded score was declared not to add up, and a sentence underneath
+   asserted "the points values in force in 1871". Three inventions in one
+   block. 39 matches carry a breakdown before 1885. */
 function valuesFor(year) {
+  if (!SC.rows.length || year < SC.rows[0][0]) return null;
   var v = SC.rows[0].slice(1), i;
   for (i = 0; i < SC.rows.length; i++) if (year >= SC.rows[i][0]) v = SC.rows[i].slice(1);
   return v;
@@ -468,82 +746,216 @@ function pointsFrom(counts, v) {
   return t;
 }
 
+/* ------------------------------------------------------------ the expander
+   FOUR LABELLED GROUPS, in the order a reader asks for them:
+     Match context     where, when, in what
+     Rankings at kickoff   what the archive reconstructs, said to be a
+                           reconstruction
+     Scoring breakdown     what was actually recorded
+     Record notes          the honesty group - what is estimated, what is
+                           missing, why a classification came out as it did
+
+   TWO KINDS OF ABSENCE, AND THEY ARE NOT THE SAME.
+     "not recorded"    the archive has never established this. It may exist.
+     "not applicable"  there is nothing to record. An awarded match has no
+                       crowd; a match with no breakdown cannot be restated.
+   Printing one blank for both was the ambiguity the reader named, and a blank
+   that means two different things is worse than either. Nothing is invented:
+   where the archive is silent, this says so in words. */
+function NR() { return '<span class="nr">not recorded</span>'; }
+function NA(why) {
+  return '<span class="na" title="' + esc(why || "") + '">not applicable</span>';
+}
+
 function scoringBlock(r, i) {
   var b = BREAK[i];
   if (!b || !SC) {
-    return '<div><h4>Scoring</h4><p class="none">No try-and-kick breakdown ' +
-      "recorded for this match.</p></div>";
+    return '<section class="dgroup"><h4>Scoring breakdown</h4>' +
+      '<p class="none">No try-and-kick breakdown is recorded for this match, ' +
+      'so its score cannot be restated in another era\'s points. ' +
+      fmtNum(Object.keys(BREAK).length) + ' of the ' + fmtNum(D.rows.length) +
+      ' matches carry one.</p></section>';
   }
   var y = +r[F.date].slice(0, 4);
   var era = valuesFor(y), latest = SC.rows[SC.rows.length - 1];
+  var checkable = era !== null;
   var sides = [
     { name: homeName(r), counts: b.slice(0, HALF), got: r[F.home_score] },
     { name: awayName(r), counts: b.slice(HALF), got: r[F.away_score] }
   ];
-  var head = "<tr><th>Scoring</th>" + BD_HEAD.slice(0, HALF).map(function (h) {
+  var head = "<tr><th>Side</th>" + BD_HEAD.slice(0, HALF).map(function (h) {
     return "<th>" + h + "</th>";
-  }).join("") + "<th>Total</th><th>Adds up?</th></tr>";
-  var body = sides.map(function (s) {
-    var calc = pointsFrom(s.counts, era);
-    var ok = calc === s.got;
-    return "<tr><td>" + esc(s.name) + "</td>" +
-      s.counts.map(function (n) { return "<td>" + (n || "·") + "</td>"; }).join("") +
-      '<td class="tot">' + s.got + "</td>" +
-      '<td class="' + (ok ? "ok" : "bad") + '">' +
-      (ok ? "✓" : "≠ " + calc) + "</td></tr>";
+  }).join("") + "<th>Total</th>" +
+    (checkable ? "<th>Adds up?</th>" : "") + "</tr>";
+  var body = sides.map(function (s2) {
+    var cells = "<tr><td>" + esc(s2.name) + "</td>" +
+      s2.counts.map(function (n) { return "<td>" + (n || "·") + "</td>"; }).join("") +
+      '<td class="tot">' + s2.got + "</td>";
+    if (checkable) {
+      var calc = pointsFrom(s2.counts, era);
+      var ok = calc === s2.got;
+      cells += '<td class="' + (ok ? "ok" : "bad") + '">' +
+        (ok ? "✓" : "≠ " + calc) + "</td>";
+    }
+    return cells + "</tr>";
   }).join("");
-  var rest = '<tr class="restate"><td>under ' + latest[0] + " rules</td>" +
-    '<td colspan="' + HALF + '"></td><td class="tot">' +
-    pointsFrom(sides[0].counts, latest.slice(1)) + " – " +
-    pointsFrom(sides[1].counts, latest.slice(1)) + "</td><td></td></tr>";
-  return "<div><table>" + head + body + rest + "</table></div>";
+  var rest = checkable
+    ? '<tr class="restate"><td>restated under ' + latest[0] + " rules</td>" +
+      '<td colspan="' + HALF + '"></td><td class="tot">' +
+      pointsFrom(sides[0].counts, latest.slice(1)) + " – " +
+      pointsFrom(sides[1].counts, latest.slice(1)) + "</td><td></td></tr>"
+    : "";
+  var note = checkable
+    ? 'Counted under the points values in force in ' + y +
+      '. A "·" is a zero, not a gap.'
+    : "This archive holds no points table earlier than " + SC.rows[0][0] +
+      ", so the " + y + " score is neither checked against the breakdown nor " +
+      'restated. A "·" is a zero, not a gap.';
+  return '<section class="dgroup wide"><h4>Scoring breakdown</h4>' +
+    '<div class="dscroll"><table>' + head + body + rest + "</table></div>" +
+    '<p class="dnote">' + note + "</p></section>";
 }
 
 function drawerHTML(i) {
   var r = ROWS[i], c = context(r);
+  var hn = homeName(r), an = awayName(r);
   var hr = r[F.home_rank_before], ar = r[F.away_rank_before];
   var hR = r[F.home_rating_before], aR = r[F.away_rating_before];
+  var awarded = /awarded|walkover|abandon/i.test(c.type || "");
+
   function dd(label, val) {
-    return val ? "<dt>" + label + "</dt><dd>" + esc(String(val)) + "</dd>" : "";
+    return "<dt>" + label + "</dt><dd>" + (val === null || val === undefined ||
+      val === "" ? NR() : val) + "</dd>";
   }
-  var rank = (hr === null || ar === null) ? "" :
-    homeName(r) + " #" + hr + (hR === null ? "" : " (" + hR.toFixed(2) + ")") +
-    "  ·  " + awayName(r) + " #" + ar +
-    (aR === null ? "" : " (" + aR.toFixed(2) + ")");
-  return '<div class="drawer">' + scoringBlock(r, i) +
-    "<div><h4>Match</h4><dl>" +
-      dd("Competition", c.comp) + dd("Trophy", c.trophy) +
-      dd("Venue", c.venue) + dd("Country", c.country) +
-      dd("Crowd", c.crowd ? fmtNum(c.crowd) : null) +
-      dd("Type", c.type) +
-      dd("Test match", r[F.full_intl] === null ? "not established"
-                     : (r[F.full_intl] ? "yes - a full international"
-                                       : "no")) +
-      dd("Sides", MCLASS_LONG[r[F.match_class]]) +
-      dd("Ranked", r[F.eligible] ? "counts towards the rankings"
-                                 : "moved nobody's rating") +
-      dd("Before", rank) +
-      dd("Source", "spreadsheet row " + r[F.excel_row]) +
-    "</dl></div></div>";
+
+  /* ---- 1. match context ---- */
+  var ctx = "<dl>" +
+    dd("Competition or tour", c.comp ? esc(c.comp) : null) +
+    (c.trophy ? "<dt>Trophy</dt><dd>" + esc(c.trophy) + "</dd>" : "") +
+    dd("Stadium", c.stadium ? esc(c.stadium) : null) +
+    dd("City", c.city ? esc(c.city) : null) +
+    dd("Country", c.country ? esc(c.country) : null) +
+    /* 167 dates are typed as text in the workbook and could mean two days.
+       Naming a weekday on those asserts something the data cannot support. */
+    dd("Weekday", r[F.date_guessed]
+        ? '<span class="na">the date is ambiguous, so no weekday is claimed</span>'
+        : DAYS[DOW[i]]) +
+    dd("Attendance", c.crowd ? fmtNum(c.crowd)
+        : (awarded ? NA("An awarded or walkover match was never played")
+                   : null)) +
+    dd("Match type", c.type ? esc(c.type) : null) +
+    "</dl>";
+
+  /* ---- 2. rankings at kickoff ---- */
+  var rank;
+  if (hr === null && ar === null) {
+    rank = '<p class="none">Neither side had a rating yet when this match ' +
+           "kicked off.</p>";
+  } else {
+    rank = "<dl>" +
+      "<dt>" + esc(hn) + "</dt><dd>" +
+        (hr === null ? '<span class="na">no rating yet</span>'
+          : "#" + hr + (hR === null ? "" :
+            ' <span class="rt">' + hR.toFixed(2) + "</span>")) + "</dd>" +
+      "<dt>" + esc(an) + "</dt><dd>" +
+        (ar === null ? '<span class="na">no rating yet</span>'
+          : "#" + ar + (aR === null ? "" :
+            ' <span class="rt">' + aR.toFixed(2) + "</span>")) + "</dd>" +
+      "</dl>";
+  }
+  rank += '<p class="dnote">Reconstructed by this archive by replaying every ' +
+    "match from 1871 under World Rugby's points exchange. These are not " +
+    "World Rugby's published tables, which begin in 2003.</p>";
+
+  /* ---- 4. record notes ---- */
+  var notes = [];
+  if (r[F.date_guessed]) {
+    notes.push("The date is stored as text in the workbook and could mean two " +
+      "different days. It is read here as written, and no weekday is stated.");
+  }
+  notes.push("Test status: " + (r[F.full_intl] === null
+    ? "not established in the workbook."
+    : (r[F.full_intl] ? "a full international. The workbook's own column " +
+       "decides this, not the team roles."
+       : "not a full international.")));
+  notes.push("Sides: " + MCLASS_LONG[r[F.match_class]] + ".");
+  /* TWO ROWS ARE EXCLUDED FOR A REASON THIS SENTENCE DID NOT COVER, and it
+     printed "the rankings only change when both sides are countries" directly
+     under "Sides: both sides are countries" - a flat self-contradiction on
+     France v South Africa 1907 and Ireland v Scotland 1885, which the master
+     workbook excludes by name in its own ranking column. */
+  notes.push("Rankings: " + (r[F.eligible]
+    ? "this result moved both ratings."
+    : (r[F.match_class] === 0
+        ? "no rating moved, even though both sides are countries - this match "
+          + "is excluded by name in the master workbook itself."
+        : "no rating moved. A match changes the rankings only when both sides "
+          + "are countries.")));
+  if (r[F.neutral]) {
+    notes.push("Played at a neutral ground, so Home and Away here are the " +
+      "fixture as listed and carry no home advantage.");
+  }
+  notes.push("Spreadsheet row " + r[F.excel_row] + " of the master workbook.");
+  var noteHTML = "<ul class=\"dnotes\">" + notes.map(function (t) {
+    return "<li>" + t + "</li>";
+  }).join("") + "</ul>";
+
+  var link = location.pathname + location.search + linkHashFor(i);
+  return '<div class="drawer" id="det-' + i + '" role="region"' +
+    ' aria-label="Match details">' +
+    '<section class="dgroup"><h4>Match context</h4>' + ctx + "</section>" +
+    '<section class="dgroup"><h4>Rankings at kickoff</h4>' + rank + "</section>" +
+    scoringBlock(r, i) +
+    '<section class="dgroup wide"><h4>Record notes</h4>' + noteHTML +
+      '<p class="dnote"><button type="button" class="linkbtn copylink"' +
+      ' data-link="' + esc(link) + '">Copy a link to this match</button></p>' +
+    "</section></div>";
 }
 
 /* ------------------------------------------- virtual list, variable height
-   Only rows the reader has opened are taller, and always by exactly
-   DRAWER_H, so the offset of row k is k*ROW_H plus DRAWER_H for each open
-   row above it. `openAt` is the sorted list of open positions in the current
-   view; it is tiny, so a linear scan beats anything cleverer.            */
-var openAt = [];
+   The expander used to be a FIXED 132px, which is why its contents had to be
+   trimmed to fit rather than the other way round. Four labelled groups cannot
+   live inside a fixed box, so heights are now MEASURED.
+
+   How it stays honest: every open row has an assumed height (ESTIMATE until
+   it has been seen). After each paint the real heights are read back, and if
+   any differ the spacer and offsets are recomputed and the row is repainted.
+   Crucially, when a correction lands ABOVE the current scroll position the
+   scrollTop is adjusted by the same delta - otherwise measuring would yank
+   the page under the reader's eyes, which is exactly the thing the brief
+   asked to preserve. Convergence is guaranteed: a height is written once per
+   open row and never oscillates, and the loop is capped anyway. */
+/* THE ESTIMATE LEARNS. A fixed 260px guess against real drawers of 430-490px
+   meant that with many rows open the arithmetic put the painted block off
+   screen entirely - "Expand all" produced a blank table at most scroll
+   positions. Every measurement now feeds a running mean that becomes the
+   estimate for every drawer not yet seen, so after the first painted row the
+   model is within a few percent instead of out by 45%. */
+var DRAWER_EST = 300;
+var estSum = 0, estN = 0;
+var drawerH = {};              // data-row index -> measured px
+function noteHeight(h) {
+  estSum += h; estN++;
+  DRAWER_EST = Math.round(estSum / estN);
+}
+function hOf(i) { return open[i] ? (drawerH[i] || DRAWER_EST) : 0; }
+
+var openAt = [];               // sorted view positions that are open
 function reindexOpen() {
   openAt = [];
   for (var k = 0; k < view.length; k++) if (open[view[k]]) openAt.push(k);
 }
 function openBefore(k) {
   var n = 0;
-  for (var j = 0; j < openAt.length && openAt[j] < k; j++) n++;
+  for (var j = 0; j < openAt.length && openAt[j] < k; j++) n += hOf(view[openAt[j]]);
   return n;
 }
-function yOf(k) { return k * ROW_H + openBefore(k) * DRAWER_H; }
-function totalH() { return view.length * ROW_H + openAt.length * DRAWER_H; }
+function yOf(k) { return k * ROW_H + openBefore(k); }
+function totalH() {
+  var extra = 0;
+  for (var j = 0; j < openAt.length; j++) extra += hOf(view[openAt[j]]);
+  return view.length * ROW_H + extra;
+}
 function firstAt(y) {
   var lo = 0, hi = view.length;
   while (lo < hi) {
@@ -553,32 +965,272 @@ function firstAt(y) {
   return Math.max(0, lo - 1);
 }
 
-function paint() {
+var measuring = false;
+/* One measuring pass. Returns true if anything moved, so the caller can settle
+   in a bounded loop rather than converging one step per repaint - which is
+   what left the paint window stale when many rows were open at once. */
+function measurePass() {
+  var nodes = bodyEl.querySelectorAll(".drawer");
+  var changed = 0, above = 0, top = wrap.scrollTop;
+  var wrapTop = wrap.getBoundingClientRect().top;
+  for (var n = 0; n < nodes.length; n++) {
+    var el = nodes[n];
+    var i = +el.id.slice(4);
+    var h = el.offsetHeight;
+    if (!h) continue;
+    if (drawerH[i] !== h) {
+      var delta = h - (drawerH[i] || DRAWER_EST);
+      drawerH[i] = h;
+      noteHeight(h);
+      changed++;
+      /* A correction ABOVE the viewport would slide everything the reader is
+         looking at; move the scroll by the same amount so nothing appears to
+         jump. Corrections below the viewport are invisible and need nothing. */
+      if (el.getBoundingClientRect().bottom < wrapTop) above += delta;
+    }
+  }
+  if (!changed) return false;
+  spacer.style.height = totalH() + "px";
+  if (above) wrap.scrollTop = top + above;
+  return true;
+}
+
+function measureOpen() {
+  if (measuring) return false;
+  measuring = true;
+  var moved = false;
+  /* Bounded: each pass writes a height that is never written again, so this
+     terminates on its own; the cap is only a guard against a pathological
+     layout that reports a different height every read. */
+  for (var pass = 0; pass < 4; pass++) {
+    if (!measurePass()) break;
+    moved = true;
+    paintOnce();
+  }
+  measuring = false;
+  return moved;
+}
+
+function paintOnce() {
   var top = wrap.scrollTop;
-  var first = Math.max(0, firstAt(top) - 4);
+  /* BOTH BOUNDS ARE IN PIXELS, AND BOTH ARE MEASURED FROM THE SCROLL
+     POSITION. They used to be mixed: the start over-scanned FOUR ROWS
+     backwards while the stop budget was counted forward from wherever those
+     four rows began. Once two of them were open, `yTop` sat a thousand pixels
+     above the viewport, `limit` fell BELOW `top`, and the loop finished before
+     it reached a single row that was actually on screen - two clicks and a
+     scroll and all 11,243 matches vanished into blank space, with no error.
+     Backing off by four ROW HEIGHTS instead of four rows keeps the over-scan
+     bounded no matter how tall the open rows above happen to be. */
+  var first = firstAt(Math.max(0, top - ROW_H * 4));
   var yTop = yOf(first);
   var html = "", k = first, y = yTop;
-  var limit = yTop + wrap.clientHeight + ROW_H * 10;
+  var limit = top + wrap.clientHeight + ROW_H * 10;
   while (k < view.length && y < limit) {
     html += rowHTML(view[k], k);
-    y += ROW_H + (open[view[k]] ? DRAWER_H : 0);
+    y += ROW_H + hOf(view[k]);
     k++;
   }
   bodyEl.style.transform = "translateY(" + yTop + "px)";
+  var refocus = grabFocus();
   bodyEl.innerHTML = html;
+  restoreFocus(refocus);
+  syncHeadScroll();
+}
+
+function paint() {
+  /* A measuring pass can move scrollTop, which fires the scroll listener,
+     which calls this again. Re-entering would restart the settling loop from
+     the middle of itself, so a nested call just repaints and returns. */
+  if (measuring) { paintOnce(); return; }
+  paintOnce();
+  if (!openAt.length) return;
+  /* Settle the height model, then paint ONE more time. Without this last
+     pass the rendered block is the one computed BEFORE the final correction,
+     which with many drawers open could sit entirely outside the viewport -
+     the table looked empty at some scroll positions even though every row
+     was accounted for in the spacer. */
+  if (measureOpen()) paintOnce();
+  ensureVisible();
+}
+
+/* THE INVARIANT: while there are rows, the viewport is never empty.
+   Heights are estimated until each drawer has been seen once, so with many
+   drawers open the error accumulates down the list and a long jump can land
+   between the painted block and the truth. Rather than chase ever-better
+   estimates, this asserts the thing that actually matters and repairs it: if
+   nothing intersects the viewport, snap the scroll onto the row the model
+   says belongs there and paint again. Costs one measurement per paint and
+   makes a blank table impossible by construction. */
+function ensureVisible() {
+  if (!view.length || measuring) return;
+  var wt = wrap.getBoundingClientRect();
+  var rows = bodyEl.children, n = rows.length, i;
+  for (i = 0; i < n; i++) {
+    var b = rows[i].getBoundingClientRect();
+    if (b.bottom > wt.top && b.top < wt.bottom) return;   // something is there
+  }
+  var k = Math.min(view.length - 1, firstAt(wrap.scrollTop));
+  measuring = true;
+  wrap.scrollTop = yOf(k);
+  paintOnce();
+  measuring = false;
+}
+
+/* THE HEADING AND THE ROWS ARE SIBLINGS, not one nested inside the other, so
+   the horizontal scrollbar belongs to the rows alone and the heading cannot
+   follow it. With the optional columns on, or below about 950px with none of
+   them, the body scrolled sideways while the heading stayed put - and every
+   label then sat over the wrong column, which is worse than no heading at all.
+   The stylesheet already says this out loud for the other three pages; this
+   one had never applied it. Translating the heading is the cheapest fix that
+   keeps a single grid definition for both. */
+function syncHeadScroll() {
+  head.style.transform = "translateX(" + (-wrap.scrollLeft) + "px)";
+}
+
+/* KEEPING FOCUS ALIVE ACROSS A REPAINT.
+   Every activation replaced innerHTML, which destroys the element that was
+   just pressed - so an expander worked exactly once, Tab restarted at the top
+   of the document afterwards, and Space on a sort heading scrolled the page
+   instead of sorting it. These two remember what was focused by its stable
+   attribute and put focus back on the replacement. */
+function grabFocus() {
+  var a = document.activeElement;
+  if (!a) return null;
+  if (a.hasAttribute && a.hasAttribute("data-exp")) {
+    return '[data-exp="' + a.getAttribute("data-exp") + '"]';
+  }
+  if (a.hasAttribute && a.hasAttribute("data-key")) {
+    return '[data-key="' + a.getAttribute("data-key") + '"]';
+  }
+  return null;
+}
+function restoreFocus(sel) {
+  if (!sel) return;
+  var el = document.querySelector(sel);
+  if (el) el.focus({ preventScroll: true });
 }
 
 function renderTable() {
+  COLS = activeCols();
+  applyGrid();
+  drawHead();
+  syncDisplayControls();
+  /* The note explains Home and Away. In team view there is no Home or Away
+     column, so it described a table that was not on screen. It lived in
+     renderAnalysis, which the perspective switch never calls. */
+  var tn = document.getElementById("tablenote");
+  if (tn) tn.hidden = teamView();
+  var live = document.getElementById("livecount");
+  if (live) {
+    live.textContent = view.length === 0
+      ? "No matches fit the current filters."
+      : fmtNum(view.length) + (view.length === 1 ? " match" : " matches") +
+        " shown.";
+  }
   reindexOpen();
   spacer.style.height = totalH() + "px";
   emptyEl.hidden = view.length > 0;
   if (wrap.scrollTop > totalH()) wrap.scrollTop = 0;
   paint();
+  syncExpandAll();
 }
 
-function toggleRow(i) {
-  if (open[i]) delete open[i]; else open[i] = true;
+function toggleRow(i, force) {
+  var want = force === undefined ? !open[i] : !!force;
+  if (want) open[i] = true; else delete open[i];
   renderTable();
+}
+
+/* EXPAND ALL / COLLAPSE ALL.
+   "Expand all" marks every row in the current view as open - a flag per row,
+   which is cheap even at 11,243 - and the virtual list still paints only what
+   fits on screen, so nothing renders thousands of expanders. The one real
+   cost is the height model: an unmeasured drawer uses the estimate, and the
+   scrollbar settles as the reader travels. That is honest and cheap; the
+   alternative is measuring 11,243 drawers up front, which is not. */
+var EXPAND_LIMIT = 500;
+function expandAll() {
+  if (view.length > EXPAND_LIMIT) {
+    if (!window.confirm("Expand all " + fmtNum(view.length) +
+        " matches?\n\nThe scrollbar will settle as you travel, because each " +
+        "expander is measured as it is drawn. Filtering down to " +
+        fmtNum(EXPAND_LIMIT) + " or fewer first is smoother.")) return;
+  }
+  for (var k = 0; k < view.length; k++) open[view[k]] = true;
+  renderTable();
+}
+function collapseAll() { open = {}; renderTable(); }
+function allOpen() {
+  if (!view.length) return false;
+  for (var k = 0; k < view.length; k++) if (!open[view[k]]) return false;
+  return true;
+}
+function syncExpandAll() {
+  var b = document.getElementById("expandall");
+  if (!b) return;
+  var all = allOpen();
+  b.textContent = all ? "Collapse all" : "Expand all";
+  b.disabled = !view.length;
+}
+
+/* ------------------------------------------------- link to a single match
+   Keyed on the SPREADSHEET ROW, not on a position in the filtered view: a
+   position means nothing once the filters differ, and the workbook row is the
+   one identifier that survives a re-sort. */
+function linkHashFor(i) {
+  var h = location.hash.replace(/^#/, "");
+  var parts = h ? h.split("&").filter(function (p) {
+    return p.slice(0, 6) !== "match=";
+  }) : [];
+  parts.push("match=" + ROWS[i][F.excel_row]);
+  return "#" + parts.join("&");
+}
+function rowForExcel(n) {
+  for (var i = 0; i < N; i++) if (ROWS[i][F.excel_row] === n) return i;
+  return -1;
+}
+/* Open the linked match and put it on screen. Called after the first render,
+   so `view` is already built. */
+function gotoMatch(excelRow) {
+  var i = rowForExcel(excelRow);
+  if (i < 0) return false;
+  var k = view.indexOf(i);
+  if (k < 0) return false;           // filtered out of the current view
+  open[i] = true;
+  renderTable();
+  wrap.scrollTop = Math.max(0, yOf(k) - ROW_H * 2);
+  paint();
+  /* Measuring can move it once; put it back where the reader expects it. */
+  wrap.scrollTop = Math.max(0, yOf(view.indexOf(i)) - ROW_H * 2);
+  paint();
+  var el = bodyEl.querySelector('[data-exp="' + i + '"]');
+  if (el) el.focus({ preventScroll: true });
+  return true;
+}
+
+/* Called on first load AND on every hashchange. Pasting a link into the
+   address bar of a page that is already open is a HASHCHANGE, not a load, and
+   the first version of this only ran at init - so the very gesture the
+   feature exists for (someone sends you a link, you paste it) was the one
+   that silently did nothing. */
+function openLinkedMatch(raw) {
+  var wanted = matchFromHash(raw);
+  var warn = document.querySelector(".fchip.warn");
+  if (warn) warn.remove();
+  if (wanted === null) return;
+  if (!gotoMatch(wanted)) notFoundMatch(wanted);
+}
+
+function notFoundMatch(excelRow) {
+  var bar = document.getElementById("chipbar");
+  var set = document.getElementById("chipset");
+  if (!bar || !set) return;
+  bar.hidden = false;
+  set.insertAdjacentHTML("beforeend",
+    '<span class="fchip warn">The linked match (spreadsheet row ' +
+    excelRow + ") is not in this filtered list</span>");
 }
 
 function setText(id, v) { document.getElementById(id).textContent = v; }
@@ -592,44 +1244,116 @@ function setText(id, v) { document.getElementById(id).textContent = v; }
    So the cards are hidden until there is a point of view to compute them
    from. The HEADING stays: it is the only place the active filters are
    confirmed back to you, and it is accurate with or without a team. */
+/* NOT `MONTHS`. There is already a MONTHS in this file - the three-letter one
+   the table and the CSV use - and a second `var MONTHS` in the same function
+   scope silently replaces it, because var declarations hoist and the later
+   assignment wins. That is exactly what happened on 7 Sep 2026: every short
+   date on the page quietly became a long one, and nothing threw. */
+var MONTHS_LONG = ["January", "February", "March", "April", "May", "June",
+                   "July", "August", "September", "October", "November",
+                   "December"];
+
+/* "2026-08-11" -> "11 August 2026". Built by hand from the string rather than
+   through Date(), because new Date("2026-08-11") is parsed as UTC midnight and
+   prints as the 10th for anyone west of Greenwich. */
+function longDate(iso) {
+  var p = String(iso).split("-");
+  if (p.length !== 3) return String(iso);
+  return String(+p[2]) + " " + MONTHS_LONG[+p[1] - 1] + " " + p[0];
+}
+
+/* Whole years ELAPSED between the first and last match. 1871-03-27 to
+   2026-08-11 is 155. Two other numbers are nearby and neither is this one:
+   the span in year LABELS is 156 (2026 - 1871 + 1), and the number of years
+   that actually contain a match is 150 - 1915-1919 and 1941 have none. The
+   tile says "years of international rugby", which is a span, so elapsed is
+   the honest one. */
+function yearSpan(fromIso, toIso) {
+  var a = String(fromIso).split("-"), b = String(toIso).split("-");
+  if (a.length !== 3 || b.length !== 3) return null;
+  var y = +b[0] - +a[0];
+  if (+b[1] < +a[1] || (+b[1] === +a[1] && +b[2] < +a[2])) y -= 1;
+  return y;
+}
+
 function hasPerspective() { return S.teamI >= 0 || S.oppI >= 0; }
+
+/* ONE description of the active filters, used by BOTH the analysis heading
+   and the chip bar. They used to be two lists that happened to agree; a chip
+   that clears a filter the sentence does not mention is how a reader ends up
+   not trusting either. `clear` names the state keys this chip switches off. */
+function activeFilters() {
+  var team = S.team, out = [];
+  function add(key, label, clear) { out.push({ key: key, label: label, clear: clear }); }
+  if (team) add("team", team, ["team", "side"]);
+  if (S.opp) add("opp", (team ? "against " : "involving ") + S.opp, ["opp"]);
+  if (S.side === "home") add("side", team ? team + " at home" : "at home", ["side"]);
+  if (S.side === "away") add("side", team ? team + " away" : "away", ["side"]);
+  if (S.side === "neutral") add("side", "at neutral venues", ["side"]);
+  if (S.yearFrom || S.yearTo) {
+    add("years", (S.yearFrom || 1871) + "–" + (S.yearTo || 2026),
+        ["yearFrom", "yearTo"]);
+  }
+  if (S.dows.length) {
+    add("dows", S.dows.map(function (d) { return DAYS[d] + "s"; }).join(", "),
+        ["dows"]);
+  }
+  if (S.comp) add("comp", S.comp, ["comp"]);
+  if (S.country) add("country", "in " + S.country, ["country"]);
+  if (S.city) add("city", "in " + S.city, ["city"]);
+  if (S.venue) add("venue", "at " + S.venue, ["venue"]);
+  if (S.mclass !== "any") add("mclass", MCLASS[+S.mclass], ["mclass"]);
+  if (S.full === "1") add("full", "full internationals only", ["full"]);
+  if (S.full === "0") add("full", "excluding full internationals", ["full"]);
+  if (S.elig === "1") add("elig", "counts towards rankings", ["elig"]);
+  if (S.elig === "0") add("elig", "does not count towards rankings", ["elig"]);
+  if (S.wc === "1") add("wc", "World Cup only", ["wc"]);
+  if (S.wc === "0") add("wc", "excluding the World Cup", ["wc"]);
+  if (S.result !== "any") {
+    add("result", { W: "wins", D: "draws", L: "defeats" }[S.result] + " only",
+        ["result"]);
+  }
+  if (S.marginMin !== null || S.marginMax !== null) {
+    add("margin", "margin " + (S.marginMin === null ? "0" : S.marginMin) + "–" +
+        (S.marginMax === null ? "any" : S.marginMax),
+        ["marginMin", "marginMax"]);
+  }
+  if (S.oppRankMin !== null || S.oppRankMax !== null) {
+    add("opprank", (team ? "opponent" : "a side") + " ranked " +
+        (S.oppRankMin === null ? "1" : S.oppRankMin) + "–" +
+        (S.oppRankMax === null ? "any" : S.oppRankMax) + " at the time",
+        ["oppRankMin", "oppRankMax"]);
+  }
+  return out;
+}
+
+var DEFAULTS = { team: "", opp: "", country: "", city: "", venue: "", comp: "",
+                 side: "any", wc: "any", elig: "any", result: "any",
+                 mclass: "any", full: "any", yearFrom: null, yearTo: null,
+                 marginMin: null, marginMax: null, oppRankMin: null,
+                 oppRankMax: null };
+
+function renderChips() {
+  var list = activeFilters();
+  var bar = document.getElementById("chipbar");
+  var set = document.getElementById("chipset");
+  if (!bar || !set) return;
+  bar.hidden = !list.length;
+  set.innerHTML = list.map(function (f, n) {
+    return '<button type="button" class="fchip" data-chip="' + n + '"' +
+      ' aria-label="Remove filter: ' + esc(f.label) + '">' + esc(f.label) +
+      ' <span class="x" aria-hidden="true">×</span></button>';
+  }).join("");
+}
 
 function renderAnalysis(a) {
   var team = S.team;
   var persp = team || "the home team";
   document.getElementById("an-title").textContent =
     team ? team : (S.opp ? S.opp + " — all matches" : "Every match");
-  var bits = [];
-  if (team && S.opp) bits.push("against " + S.opp);
-  else if (S.opp && !team) bits.push("matches involving " + S.opp);
-  if (S.side === "home") bits.push("at home");
-  if (S.side === "away") bits.push("away");
-  if (S.side === "neutral") bits.push("at neutral venues");
-  if (S.yearFrom || S.yearTo) {
-    bits.push((S.yearFrom || 1871) + "–" + (S.yearTo || 2026));
-  }
-  if (S.dows.length) {
-    bits.push(S.dows.map(function (d) { return DAYS[d] + "s"; }).join(", "));
-  }
-  if (S.comp) bits.push(S.comp);
-  if (S.country) bits.push("in " + S.country);
-  if (S.city) bits.push("in " + S.city);
-  if (S.venue) bits.push("at " + S.venue);
-  if (S.mclass !== "any") bits.push(MCLASS[+S.mclass]);
-  if (S.full === "1") bits.push("full internationals only");
-  if (S.full === "0") bits.push("excluding full internationals");
-  if (S.wc === "1") bits.push("World Cup only");
-  if (S.wc === "0") bits.push("excluding the World Cup");
-  if (S.result !== "any") bits.push({ W: "wins", D: "draws", L: "defeats" }[S.result] + " only");
-  if (S.marginMin !== null || S.marginMax !== null) {
-    bits.push("margin " + (S.marginMin === null ? "0" : S.marginMin) + "–" +
-              (S.marginMax === null ? "any" : S.marginMax));
-  }
-  if (S.oppRankMin !== null || S.oppRankMax !== null) {
-    bits.push((team ? "opponent" : "a side") + " ranked " +
-              (S.oppRankMin === null ? "1" : S.oppRankMin) + "–" +
-              (S.oppRankMax === null ? "any" : S.oppRankMax) + " at the time");
-  }
+  var bits = activeFilters().map(function (f) { return f.label; });
+  renderChips();
+
   document.getElementById("an-sub").textContent =
     bits.length ? bits.join(" · ") : "no filters — the whole archive";
 
@@ -659,6 +1383,23 @@ function renderAnalysis(a) {
   var cards = document.querySelector(".analysis .cards");
   var show = hasPerspective();
   if (cards) cards.hidden = !show;
+
+  /* THE HERO IS THE EMPTY STATE, and only the empty state. It appears when no
+     team, no opponent and no other filter is set - the one moment the stats
+     cards have nothing to say and the space is otherwise blank. The moment
+     any filter lands it disappears and the analysis header takes over, so the
+     two never both claim to describe what is on screen. */
+  var virgin = !show && bits.length === 0;
+  var hero = document.getElementById("hero");
+  if (hero) hero.hidden = !virgin;
+  var ahead = document.querySelector(".analysis .analysis-head");
+  if (ahead) ahead.hidden = virgin;
+  /* With both its children hidden the analysis block was still painting its
+     own padding and bottom border - a ~30px dead band between the hero and
+     the table. Hide the container too. Safe on a phone: the Stats toggle that
+     opens this block is itself hidden whenever `virgin` is true. */
+  var abox = document.getElementById("analysis");
+  if (abox) abox.hidden = virgin;
   /* the phone Stats toggle has nothing to toggle when the cards are gone */
   var stog = document.getElementById("statstoggle");
   if (stog) {
@@ -735,10 +1476,30 @@ function renderAnalysis(a) {
   }).join("");
 
   setText("rowcount", fmtNum(a.played));
+  /* THE EXPORT SAYS WHAT IT WILL EXPORT. "Download this list as CSV" gave no
+     clue whether "this list" meant the filtered set or all 11,243. */
+  var ex = document.getElementById("export");
+  if (ex) {
+    ex.textContent = "Export " + fmtNum(view.length) +
+      (activeFilters().length ? " filtered matches" : " matches");
+  }
+  /* Team view only exists with a team selected, and it says whose view it is
+     rather than leaving "Result" to be read from nowhere. */
+  var vsw = document.getElementById("viewswitch");
+  if (vsw) {
+    vsw.hidden = S.teamI < 0;
+    if (S.teamI >= 0) {
+      document.getElementById("vs-team").textContent = S.team + "'s view";
+      document.getElementById("vs-label").textContent = "Perspective";
+    }
+  }
+
   document.getElementById("pctall").textContent =
     a.played === N ? "" : "of " + fmtNum(N) + " (" +
       (100 * a.played / N).toFixed(1) + "%)";
 }
+
+var lastRefreshMs = 0;
 
 function refresh() {
   var t0 = performance.now();
@@ -748,8 +1509,11 @@ function refresh() {
   renderAnalysis(a);
   drawHead();
   renderTable();
-  var ms = performance.now() - t0;
-  document.getElementById("perf").textContent = ms.toFixed(1) + " ms";
+  /* Kept as a number, no longer painted on the page: how many milliseconds a
+     recompute took is a fact about my code, not about rugby, and it sat in the
+     toolbar next to the match count as though the two were comparable.
+     verify_site.py times this independently and never read the element. */
+  lastRefreshMs = performance.now() - t0;
   writeHash();
 }
 
@@ -841,11 +1605,21 @@ function countPresent(field) {
 }
 
 function init() {
-  document.getElementById("buildinfo").innerHTML =
-    fmtNum(D.meta.matches) + " matches · " + fmtNum(D.meta.teams) + " teams · " +
-    D.meta.first_match + " to " + D.meta.last_match +
-    '<br>built ' + D.meta.built.replace("T", " ") +
-    '<span class="fromwb"> from ' + esc(D.meta.source_workbook) + "</span>";
+  /* A build timestamp to the second and a source filename are things only I
+     need. How far the record reaches is what a reader wants.
+     IT MUST NOT SAY "COMPLETE TO". This string is generated from the last row,
+     so it would assert completeness whatever the archive happened to be
+     missing - and on 7 Sep 2026 it was missing three senior internationals
+     (South Africa v New Zealand on 22 and 29 August, Argentina v Australia on
+     29 August). A statement of fact about the last row is always true; a
+     statement of completeness is a promise this line cannot keep. */
+  document.getElementById("buildinfo").textContent =
+    "Latest match in the archive: " + longDate(D.meta.last_match);
+
+  setText("hero-matches", fmtNum(D.meta.matches));
+  setText("hero-teams", fmtNum(D.meta.teams));
+  var yrs = yearSpan(D.meta.first_match, D.meta.last_match);
+  setText("hero-years", yrs === null ? "–" : fmtNum(yrs));
 
   // Teams sorted by how much they played — the ones he wants are at the top,
   // and the full alphabetical list follows.
@@ -955,18 +1729,34 @@ function init() {
      constantly, so per-row listeners would be attached and thrown away
      thousands of times a minute. */
   bodyEl.addEventListener("click", function (e) {
+    var cp = e.target.closest ? e.target.closest(".copylink") : null;
+    if (cp) {
+      var url = location.origin === "null" || location.protocol === "file:"
+        ? location.href.split("#")[0] + cp.getAttribute("data-link").replace(
+            location.pathname + location.search, "")
+        : location.origin + cp.getAttribute("data-link");
+      copyText(url, cp);
+      return;
+    }
     var btn = e.target.closest ? e.target.closest("[data-exp]") : null;
     if (!btn) return;
     toggleRow(+btn.getAttribute("data-exp"));
   });
 
+  /* The heading cells are real <button>s now, so Enter and Space work without
+     a keydown handler of their own; the click listener catches both. */
   head.addEventListener("click", function (e) {
     var d = e.target.closest("[data-key]"); if (!d) return;
     var key = d.dataset.key; if (!key) return;
     if (S.sort === key) S.dir = -S.dir;
     else { S.sort = key; S.dir = (key === "home" || key === "away" ||
                                   key === "comp" || key === "venue") ? 1 : -1; }
-    view = sortView(); drawHead(); renderTable();
+    view = sortView(); renderTable();
+    /* The hash carries sort and dir, but this handler never wrote it - so a
+       sort was in the URL only if some LATER filter change happened to flush
+       it, which is a URL that is right sometimes for reasons the reader
+       cannot see. */
+    writeHash();
   });
 
   wrap.addEventListener("scroll", paint, { passive: true });
@@ -1004,7 +1794,87 @@ function init() {
   });
 
   document.getElementById("export").addEventListener("click", exportCSV);
+  var tableGuide = document.querySelector(".tableguide");
+  if (tableGuide) tableGuide.addEventListener("toggle", renderTable);
 
+  /* ---- filter chips ---- */
+  document.getElementById("chipset").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-chip]"); if (!b) return;
+    var f = activeFilters()[+b.getAttribute("data-chip")];
+    if (!f) return;
+    f.clear.forEach(function (k) {
+      S[k] = (k === "dows") ? [] : DEFAULTS[k];
+    });
+    if (S.team === "") VIEWMODE = "fixture";
+    syncControls(); refresh();
+  });
+  document.getElementById("chipclear").addEventListener("click", function () {
+    location.hash = ""; resetAll();
+  });
+
+  /* ---- row density ---- */
+  document.getElementById("f-density").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-v]"); if (!b) return;
+    DENSITY = b.dataset.v;
+    savePrefs(); syncDisplayControls();
+    drawerH = {};              // a density change re-flows every expander
+    renderTable();
+  });
+
+  /* ---- fixture view vs team view ---- */
+  document.getElementById("f-view").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-v]"); if (!b) return;
+    VIEWMODE = b.dataset.v;
+    savePrefs(); syncDisplayControls();
+    /* RE-SORT. The away column becomes the OPPONENT column in team view, and
+       the opponent is whichever side is not the selected team - so half the
+       rows sort on a different name in one view than the other. Without this
+       the heading said "Opponent A-Z" over an order that was still filed by
+       the away side, which for Wales meant 190 inversions and a 400-row block
+       under "W". A heading that lies about the order is worse than no sort. */
+    view = sortView();
+    renderTable();
+  });
+
+  /* ---- optional columns ---- */
+  var colbtn = document.getElementById("colbtn");
+  var colpanel = document.getElementById("colpanel");
+  colbtn.addEventListener("click", function () {
+    var openNow = colpanel.hidden;
+    colpanel.hidden = !openNow;
+    colbtn.setAttribute("aria-expanded", String(openNow));
+  });
+  document.addEventListener("click", function (e) {
+    if (colpanel.hidden) return;
+    if (colpanel.contains(e.target) || colbtn.contains(e.target)) return;
+    colpanel.hidden = true;
+    colbtn.setAttribute("aria-expanded", "false");
+  });
+  colpanel.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") {
+      colpanel.hidden = true;
+      colbtn.setAttribute("aria-expanded", "false");
+      colbtn.focus();
+    }
+  });
+  colbtn.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && !colpanel.hidden) {
+      colpanel.hidden = true;
+      colbtn.setAttribute("aria-expanded", "false");
+    }
+  });
+  colpanel.addEventListener("change", function (e) {
+    var cb = e.target.closest("input[data-col]"); if (!cb) return;
+    OPT[cb.getAttribute("data-col")] = cb.checked;
+    savePrefs(); renderTable();
+  });
+
+  /* ---- expand all / collapse all ---- */
+  document.getElementById("expandall").addEventListener("click", function () {
+    if (allOpen()) collapseAll(); else expandAll();
+  });
+
+  syncDisplayControls();
   readHash();
   syncControls();
   refresh();
@@ -1012,6 +1882,13 @@ function init() {
   document.getElementById("loading").hidden = true;
   document.getElementById("app").hidden = false;
   paint();
+
+  /* A link to one match opens it and scrolls to it. THIS HAS TO RUN AFTER THE
+     APP IS UNHIDDEN. While #app is hidden the scroller's clientHeight is 0, so
+     setting scrollTop does nothing and the virtual list paints almost no rows
+     - the linked match was being opened into a viewport that did not exist
+     yet, and the final paint then started again from the top. */
+  openLinkedMatch();
 }
 
 function resetAll() {
@@ -1056,6 +1933,58 @@ function syncControls() {
   });
 }
 
+/* Paint the display switches from the remembered preferences, so a reload
+   shows the state it is actually in rather than the markup's defaults. */
+function syncDisplayControls() {
+  [].forEach.call(document.querySelectorAll("#f-density button"), function (b) {
+    b.classList.toggle("on", b.dataset.v === DENSITY);
+    b.setAttribute("aria-pressed", String(b.dataset.v === DENSITY));
+  });
+  [].forEach.call(document.querySelectorAll("#f-view button"), function (b) {
+    var on = b.dataset.v === (teamView() ? "team" : "fixture");
+    b.classList.toggle("on", on);
+    b.setAttribute("aria-pressed", String(on));
+  });
+  [].forEach.call(document.querySelectorAll("#colpanel input[data-col]"),
+    function (cb) { cb.checked = !!OPT[cb.getAttribute("data-col")]; });
+}
+
+/* Clipboard, with a fallback: navigator.clipboard is unavailable on a
+   file:// page in several browsers, which is exactly how he opens this. */
+function copyText(text, btn) {
+  var was = btn.textContent;
+  function done(ok) {
+    btn.textContent = ok ? "Link copied" : "Press Ctrl+C to copy";
+    setTimeout(function () { btn.textContent = was; }, 2200);
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function () { done(true); },
+                                             function () { fallback(); });
+  } else { fallback(); }
+  function fallback() {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed"; ta.style.top = "-1000px";
+    document.body.appendChild(ta); ta.select();
+    var ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    done(ok);
+  }
+}
+
+function matchFromHash(raw) {
+  var h = (raw === undefined ? location.hash : raw).replace(/^#/, ""), out = null;
+  h.split("&").forEach(function (p) {
+    if (p.slice(0, 6) === "match=") {
+      var n = +decodeURIComponent(p.slice(6));
+      if (!isNaN(n)) out = n;
+    }
+  });
+  return out;
+}
+
 // ---------------------------------------------- shareable / bookmarkable
 var HASH_KEYS = ["team", "opp", "side", "yearFrom", "yearTo", "country",
                  "city", "venue", "comp", "wc", "elig", "mclass", "full", "result",
@@ -1073,6 +2002,11 @@ function writeHash() {
     parts.push(k + "=" + encodeURIComponent(v));
   });
   if (S.dows.length) parts.push("dows=" + S.dows.join(","));
+  /* A match= deep link survives a filter change: the reader followed a link to
+     one match, and changing a filter should not silently drop it from the URL
+     they might copy next. */
+  var m = matchFromHash();
+  if (m !== null) parts.push("match=" + m);
   writingHash = true;
   var h = parts.length ? "#" + parts.join("&") : "";
   if (location.hash !== h) {
@@ -1081,8 +2015,11 @@ function writeHash() {
   writingHash = false;
 }
 
-function readHash() {
-  var h = location.hash.replace(/^#/, "");
+/* Takes the hash string as an ARGUMENT, because by the time this runs on a
+   hashchange the hash may no longer say what the reader typed - see the
+   listener below. */
+function readHash(raw) {
+  var h = (raw === undefined ? location.hash : raw).replace(/^#/, "");
   if (!h) return;
   h.split("&").forEach(function (p) {
     var kv = p.split("="), k = kv[0], v = decodeURIComponent(kv[1] || "");
@@ -1096,10 +2033,20 @@ function readHash() {
 
 window.addEventListener("hashchange", function () {
   if (writingHash) return;
+  /* READ THE HASH BEFORE resetAll TOUCHES IT. resetAll() calls refresh(),
+     refresh() calls writeHash(), and writeHash() overwrites location.hash from
+     the freshly-defaulted state - so by the time readHash() ran, the thing it
+     was meant to read had already been replaced by an empty one. Pasting a
+     shared link into a tab that was already open therefore cleared every
+     filter and looked like the link was broken. It had been that way since the
+     hash was introduced; nothing caught it because a link opened in a NEW tab
+     is a load, not a hashchange, and that is how it was always tested. */
+  var raw = location.hash;
   resetAll();
-  readHash();
+  readHash(raw);
   syncControls();
   refresh();
+  openLinkedMatch(raw);
 });
 
 // -------------------------------------------------------------- CSV out
