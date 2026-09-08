@@ -354,15 +354,13 @@ function init() {
     "only these can be restated in another era's points";
 
   document.getElementById("coverage").innerHTML =
-    "<b>Read this before quoting any restated score.</b> Only <b>" +
-    num(SC.coverage) + " of the " + num(SC.total_matches) + "</b> matches in " +
-    "the archive (" + (100 * SC.coverage / SC.total_matches).toFixed(1) +
-    "%) record a full breakdown for both sides, so only those can be " +
-    "restated. Every other match appears here not at all. This is a " +
-    "limitation of the source data, not of the method — fill in the " +
-    "tries/conversions/penalties/drop goals/mark columns in the spreadsheet " +
-    "and " +
-    "those matches will appear here on the next Update Archive.";
+    "<b>About these restated scores.</b> This view includes only the <b>" +
+    num(SC.coverage) + " of " + num(SC.total_matches) + "</b> archived matches (" +
+    (100 * SC.coverage / SC.total_matches).toFixed(1) +
+    "%) with complete scoring breakdowns for both teams. Matches without " +
+    "enough detail are excluded from this view but remain in the match archive. " +
+    "Restated scores apply a different era’s point values to the recorded scoring " +
+    "events; they do not predict how the teams would have played under different laws.";
 
   document.getElementById("f-target").innerHTML = SC.rows.slice().reverse()
     .map(function (r) {
