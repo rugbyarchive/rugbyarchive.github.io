@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="The story, scope and sources behind Rugby Archive, an independent project exploring men’s international rugby history.">
+<meta name="theme-color" content="#1f3864">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Rugby Archive">
+<meta property="og:title" content="Rugby Archive — About">
+<meta property="og:description" content="The story, scope and sources behind Rugby Archive, an independent project exploring men’s international rugby history.">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231f3864'/%3E%3Cellipse cx='16' cy='16' rx='11' ry='7' transform='rotate(-35 16 16)' fill='none' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M11 21 L21 11' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M13.5 16.5 L15.5 18.5 M16.5 13.5 L18.5 15.5' stroke='%23fff' stroke-width='1.6'/%3E%3C/svg%3E">
+<title>Rugby Archive — About</title>
+<link rel="stylesheet" href="assets/styles.css?v=20260908-about">
+<!-- loaded here, not at the foot, so the theme is set before the first paint -->
+<script src="assets/theme.js"></script>
+</head>
+<body data-palette="#2a78d6,#e34948">
+
+<header class="topbar">
+  <div class="brand">
+    <h1>Rugby Archive</h1>
+    <nav class="mainnav">
+      <a href="index.html">Super Filter</a>
+      <a href="rankings.html">Rankings Time Machine</a>
+      <a href="head-to-head.html">Head to Head</a>
+      <a href="scoring.html">Score Normalisation</a>
+      <a href="about.html" class="here" aria-current="page">About</a>
+    </nav>
+      <div class="themeswitch" id="themeswitch"><button type="button" data-theme="terminal" class="on">Terminal</button><button type="button" data-theme="light">Light</button></div>
+  </div>
+  <div class="buildinfo" id="buildinfo"></div>
+</header>
+
+<main class="about">
+  <header class="about-intro">
+    <p class="about-kicker">About Rugby Archive</p>
+    <h2>A record of the game.<br>A way to ask more of it.</h2>
+    <p>I’m building Rugby Archive as a hobby project: a place to bring the scattered record of men’s senior fifteen-a-side rugby together, and make it possible to explore the history behind the results.</p>
+    <p>A score tells you who won. Put it alongside the matches before and after it, and you can follow a rivalry, watch a nation rise, or revisit a result under a different scoring system. That is what this website is for.</p>
+    <div class="about-stats" aria-label="Current archive coverage">
+      <div><strong data-stat="matches">11,258</strong><span>recorded matches</span></div>
+      <div><strong data-stat="teams">616</strong><span>teams &amp; touring sides</span></div>
+      <div><strong data-stat="breakdown_coverage">1,796</strong><span>complete scoring breakdowns</span></div>
+    </div>
+    <p class="about-date">The current record runs from 27 March 1871 to <span id="about-latest">6 September 2026</span>. The latest date is the end of the recorded data, not a claim that every fixture has been found.</p>
+  </header>
+  <nav class="about-contents" aria-label="On this page"><a href="#scope">What belongs here</a><a href="#explore">Explore the game</a><a href="#rankings">Understanding rankings</a><a href="#sources">Building the record</a><a href="#progress">Work in progress</a></nav>
+  <section id="scope"><p class="about-kicker">01 / The scope</p><h2>More than a list of Tests</h2>
+    <p>The archive’s scope is matches involving at least one national side, the British &amp; Irish Lions or the Barbarians. That includes national teams meeting clubs, provinces and touring opposition. Those fixtures are part of rugby’s story, even when they are not full internationals.</p>
+    <p>Being included, being a Test and affecting a ranking are three different things. The match details distinguish them. A union’s decision to award caps does not, by itself, settle how the other side recognised the fixture.</p>
+    <p>This project focuses on men’s senior fifteen-a-side rugby union. Women’s rugby, age-grade rugby and sevens are outside its present scope.</p>
+  </section>
+  <section id="explore"><p class="about-kicker">02 / From results to questions</p><h2>Four ways into the archive</h2>
+    <div class="about-tools">
+      <article><h3><a href="index.html">Super Filter →</a></h3><p>Start with a team, an opponent, an era or a competition. Combine filters to narrow the record, expand a match for its supporting detail, and export a selection to investigate further.</p></article>
+      <article><h3><a href="rankings.html">Rankings Time Machine →</a></h3><p>Move through the archive’s reconstructed rankings one match or matchday at a time. Follow the latest points exchanges, compare twelve-month changes, or switch to World Rugby’s published historical tables.</p></article>
+      <article><h3><a href="head-to-head.html">Head to Head →</a></h3><p>Choose two sides and follow their rivalry: who has led in wins, their biggest results, and how the record varies by era, competition and where they played.</p></article>
+      <article><h3><a href="scoring.html">Score Normalisation →</a></h3><p>Where a complete breakdown is available, revalue the recorded tries and kicks under another era’s scoring system. This is a numerical comparison of recorded scoring events, not a prediction of how the match would have unfolded under different laws.</p></article>
+    </div>
+  </section>
+  <section id="rankings"><p class="about-kicker">03 / Two different records</p><h2>Reconstructed rankings and published rankings</h2>
+    <p><strong>The archive reconstruction</strong> replays eligible results from 1871 using World Rugby’s points-exchange method. It is my historical model, with its own starting conditions and team coverage. It is not an official table for years before World Rugby published rankings, nor should its points be expected to match the published figures today.</p>
+    <p><strong>The World Rugby view</strong> shows saved published positions and ratings from October 2003 onwards. The date shown identifies the available snapshot. Coverage between updates is not continuous, and stepping through a match does not invent a new official table.</p>
+    <p>Great Britain, Australasia and the British &amp; Irish Lions / British Isles cannot rank in the reconstruction. Matches against them change neither side’s rating. Other non-country opposition, including the Barbarians, is also excluded from points exchanges.</p>
+    <p>The optional “Hide idle 4 years+” control is an archive display setting. World Rugby describes dormant teams returning with their previous rating, but its public explanation does not specify a four-year threshold. Historical succession and defunct teams remain an area needing further refinement in this reconstruction.</p>
+    <p class="about-reference">Method reference: <a href="https://www.world.rugby/rankings/explanation?lang=en">World Rugby’s rankings explanation</a>. The reconstruction also incorporates the <a href="https://www.world.rugby/news/1044762/new-world-rugby-rankings-criteria">removal of home weighting from July 2026</a>.</p>
+  </section>
+  <section id="sources"><p class="about-kicker">04 / Behind each row</p><h2>A library, a spreadsheet and a lot of checking</h2>
+    <p>The research draws on printed rugby reference books and yearbooks, union records, contemporary reporting and specialist archives. A result may be easy to find; establishing its date, ground, scorers and status often means comparing several accounts.</p>
+    <p>The source collection includes the <cite>Rothmans Rugby Union Yearbook</cite>, IRB and World Rugby yearbooks, John Griffiths’ <cite>The Phoenix Book of International Rugby Records</cite>, Terry Godwin’s <cite>The International Rugby Championship 1883–1983</cite>, and histories of individual teams and tours. These sit alongside union records and more recent match reporting.</p>
+    <p>Checks include looking for duplicate fixtures and date clashes, checking scoring breakdowns against the applicable scoring values, and comparing results with independent accounts. A breakdown that adds up is useful evidence of consistency; it is not proof that every scoring event was recorded correctly. Named scorers and contemporary reports can resolve mistakes that arithmetic cannot.</p>
+    <p>Web summaries can help locate a lead, but repeating the same score on several pages does not necessarily provide several independent sources. Where supporting notes and citations have been recorded, they help explain a value or preserve a disagreement for further research.</p>
+  </section>
+  <section id="progress"><p class="about-kicker">05 / An archive in progress</p><h2>Useful now. Still being enriched.</h2>
+    <p>The core website is ready to explore, but the research is ongoing. Coverage varies considerably: some matches have detailed scoring records and contemporary accounts, while others still have little beyond the result. Venues, attendances, kick-off times and competition details are not complete.</p>
+    <p>A blank means that a value is not recorded here. It does not mean zero, and it does not necessarily mean the information can never be found. Restated scores are available only for matches with a complete usable breakdown; other results retain their recorded scores.</p>
+    <p>My aim is to keep improving the record without making it look more certain than it is. New research should add context, expose doubts and correct mistakes. The archive is a working account of the game, open to revision as better evidence emerges.</p>
+    <a class="about-start" href="index.html">Explore the archive →</a>
+  </section>
+  <footer class="about-footer">An independent hobby project. Not an official World Rugby publication.</footer>
+</main>
+<script src="data/archive-data.js?v=20260908-about"></script>
+<script src="assets/about.js?v=20260908-about"></script>
+</body></html>
