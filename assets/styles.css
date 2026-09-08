@@ -94,9 +94,9 @@ main{
 }
 /* Give the explorer the space below the actual header, including wrapped nav. */
 @media (min-width:701px){
-  body:has(> main#app){display:flex;flex-direction:column;height:100dvh;overflow:hidden}
-  body:has(> main#app)>.topbar{flex:0 0 auto}
-  main#app{height:auto;min-height:0;flex:1 1 auto}
+  body:has(> main#app:not(.tm):not(.h2h):not(.sc)){display:flex;flex-direction:column;height:100dvh;overflow:hidden}
+  body:has(> main#app:not(.tm):not(.h2h):not(.sc))>.topbar{flex:0 0 auto}
+  main#app:not(.tm):not(.h2h):not(.sc){height:auto;min-height:0;flex:1 1 auto}
 }
 
 /* --------------------------------------------------------------- filters */
