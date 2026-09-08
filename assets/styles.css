@@ -1081,7 +1081,7 @@ html.dense .expbtn{font-size:14px}
      words and loses its air. */
   .hero{padding:12px 14px;display:block}
   .hero h2{max-width:none;font-size:16px}
-  .hero-sub{display:none}
+  .hero-sub{font-size:11px}
   .hero-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px;padding:8px 0 0;
     border-left:0;border-top:1px solid var(--line-soft);max-width:none}
   .hero-stats b{font-size:18px}
