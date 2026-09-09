@@ -957,6 +957,8 @@ function drawerHTML(i) {
     '<section class="dgroup wide"><h4>Record notes</h4>' + noteHTML +
       '<p class="dnote"><button type="button" class="linkbtn copylink"' +
       ' data-link="' + esc(link) + '">Copy a link to this match</button></p>' +
+      '<p class="dnote"><a class="report-link" href="report.html?match=' +
+      encodeURIComponent(r[F.match_id] || '') + '">Report an error in this match</a></p>' +
     "</section></div>";
 }
 

@@ -1295,3 +1295,14 @@ main.about{display:block;height:auto;min-height:0;max-width:1080px;margin:0 auto
 .about-tools h3{font-size:15px}.about-tools p{margin-bottom:0}
 .about-start{display:inline-block;margin-top:12px}.about-footer{border-top:1px solid var(--line);padding:20px 0}
 @media(max-width:700px){main.about{padding:24px 16px}.about-tools{grid-template-columns:1fr}.about h2{font-size:23px}.about-intro h2{font-size:29px}}
+
+.report-page{max-width:820px!important}.report-page form{max-width:700px}
+.report-page fieldset{border:1px solid var(--line);border-radius:5px;padding:16px;margin:24px 0}
+.report-page legend{padding:0 8px;color:var(--t-team)}
+.report-page label{display:block;margin:18px 0 6px;font-weight:600}
+.report-page label span{font-weight:400;color:var(--muted)}
+.report-page input,.report-page select,.report-page textarea{width:100%;max-width:100%;font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:10px}
+.report-page textarea{resize:vertical}.report-page input[readonly]{color:var(--muted)}
+.report-page .report-privacy{font-size:12px}.report-page button[type=submit]{font:inherit;padding:10px 18px;color:var(--t-team);background:var(--panel);border:1px solid var(--line);border-radius:4px;cursor:pointer}
+.report-page button:disabled{opacity:.6;cursor:default}.report-page :focus-visible{outline:2px solid var(--t-accent);outline-offset:3px}
+.report-link{color:var(--t-team)}

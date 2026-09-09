@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="The story, scope and sources behind Rugby Archive, an independent project exploring men’s international rugby history.">
+<meta name="theme-color" content="#1f3864">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Rugby Archive">
+<meta property="og:title" content="Rugby Archive — Report an error">
+<meta property="og:description" content="The story, scope and sources behind Rugby Archive, an independent project exploring men’s international rugby history.">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231f3864'/%3E%3Cellipse cx='16' cy='16' rx='11' ry='7' transform='rotate(-35 16 16)' fill='none' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M11 21 L21 11' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M13.5 16.5 L15.5 18.5 M16.5 13.5 L18.5 15.5' stroke='%23fff' stroke-width='1.6'/%3E%3C/svg%3E">
+<title>Rugby Archive — Report an error</title>
+<link rel="stylesheet" href="assets/styles.css?v=20260909-reports">
+<!-- loaded here, not at the foot, so the theme is set before the first paint -->
+<script src="assets/theme.js"></script>
+</head>
+<body data-palette="#2a78d6,#e34948">
+
+<header class="topbar">
+  <div class="brand">
+    <h1>Rugby Archive</h1>
+    <nav class="mainnav">
+      <a href="index.html">Super Filter</a>
+      <a href="rankings.html">Rankings Time Machine</a>
+      <a href="head-to-head.html">Head to Head</a>
+      <a href="scoring.html">Score Normalisation</a>
+      <a href="about.html">About</a>
+    </nav>
+      <div class="themeswitch" id="themeswitch"><button type="button" data-theme="terminal" class="on">Terminal</button><button type="button" data-theme="light">Light</button></div>
+  </div>
+  <div class="buildinfo" id="buildinfo"></div>
+</header>
+
+<main class="about report-page">
+<h2>Report a match error</h2>
+<p>Spotted something that needs correcting? Share what you found. Reports are reviewed before any changes are made to the archive.</p>
+<p id="report-loading" role="status">Loading match details…</p>
+<form id="report-form" hidden>
+<fieldset><legend>Match being reported</legend>
+<label for="report-fixture">Fixture</label><input id="report-fixture" name="fixture" readonly>
+<label for="report-id">Match ID</label><input id="report-id" name="match_id" readonly>
+<input name="match_url" id="report-url" type="hidden"><input name="archive_build" id="report-build" type="hidden">
+<p><a id="report-back" href="index.html">Back to this match</a></p>
+</fieldset>
+<label for="report-category">What needs correcting?</label>
+<select id="report-category" name="category" required><option value="">Choose a category</option><option>Score or result</option><option>Date or teams</option><option>Venue or attendance</option><option>Scoring breakdown</option><option>Test status or ranking eligibility</option><option>Duplicate or out-of-scope match</option><option>Other</option></select>
+<label for="report-message">Suggested correction <span>(required)</span></label>
+<textarea id="report-message" name="message" rows="5" required maxlength="5000" placeholder="Tell us what looks wrong and what you believe it should say."></textarea>
+<label for="report-source">Supporting source <span>(optional)</span></label>
+<textarea id="report-source" name="source" rows="3" maxlength="2000" placeholder="A link, book title and page number, or another reference that could help us check."></textarea>
+<label for="report-email">Your email <span>(optional, if you’d like a reply)</span></label>
+<input id="report-email" name="email" type="email" maxlength="254" autocomplete="email">
+<div hidden aria-hidden="true"><label>Leave this empty<input name="_gotcha" tabindex="-1" autocomplete="off"></label></div>
+<p class="report-privacy">Your report and any email address you provide will be sent through Formspree to the archive owner for review. They will not be published by this form. <a href="https://formspree.io/legal/privacy-policy/">Formspree privacy policy</a>.</p>
+<button type="submit" id="report-send" disabled>Send report</button>
+<p id="report-status" role="status" aria-live="polite"></p>
+</form>
+<noscript><p>Please enable JavaScript to load the match details and reporting form.</p></noscript>
+</main>
+<script src="data/archive-data.js?v=1f536de722042de1"></script>
+<script src="assets/report-config.js?v=20260909-reports"></script>
+<script src="assets/report.js?v=20260909-reports"></script>
+</body></html>
