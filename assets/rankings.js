@@ -127,10 +127,10 @@ function recentMatches(key, day, n) {
 // --------------------------------------------------------------- rendering
 var COLS = [
   { key: "rank",   label: "#",            cls: "num" },
+  { key: "rankImpact", label: "Δ rank", cls: "num" },
   { key: "team",   label: "Team",         cls: "" },
   { key: "rating", label: "Rating",       cls: "num" },
   { key: "impact", label: "Matchday Δ pts", cls: "num" },
-  { key: "rankImpact", label: "Δ rank", cls: "num" },
   { key: "move",   label: "12m rank",     cls: "num" },
   { key: "chg",    label: "12m pts",      cls: "num" },
   { key: "played", label: "Played",       cls: "num" },
@@ -189,6 +189,7 @@ function rowHTML(x) {
   var link = "index.html#team=" + encodeURIComponent(x.name);
   var h = '<div class="trow" style="grid-template-columns:' + gridCols() + '">' +
     '<div class="num pos">' + x.rank + "</div>" +
+    '<div class="num">' + movement(x.rankImpact) + '</div>' +
     '<div class="teamcell"><a href="' + link + '" title="See every ' +
       esc(x.name) + " match in the Super Filter\">" + esc(x.name) + "</a>" +
       (S.source !== 'world' && OWN[x.id] ? '<span class="ownflag" title="Ranked here but not a World '
@@ -197,7 +198,6 @@ function rowHTML(x) {
     '<div class="num rating">' + x.rating.toFixed(2) + "</div>" +
     '<div class="num ' + (x.impact > 0 ? 'up' : x.impact < 0 ? 'down' : '') + '">' +
       (x.impact === null ? 'new' : (x.impact > 0 ? '+' : '') + x.impact.toFixed(2)) + '</div>' +
-    '<div class="num">' + movement(x.rankImpact) + '</div>' +
     '<div class="num">' + movement(x.move) + "</div>" +
     '<div class="num ' + (x.chg > 0 ? "up" : (x.chg < 0 ? "down" : "")) + '">' +
       (x.chg === null ? "–" : (x.chg > 0 ? "+" : "") + x.chg.toFixed(2)) +
