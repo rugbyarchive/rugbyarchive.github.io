@@ -12,7 +12,7 @@
 <meta name="twitter:card" content="summary">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231f3864'/%3E%3Cellipse cx='16' cy='16' rx='11' ry='7' transform='rotate(-35 16 16)' fill='none' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M11 21 L21 11' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M13.5 16.5 L15.5 18.5 M16.5 13.5 L18.5 15.5' stroke='%23fff' stroke-width='1.6'/%3E%3C/svg%3E">
 <title>Rugby Archive — the Super Filter</title>
-<link rel="stylesheet" href="assets/styles.css?v=2f30db1c483731bf">
+<link rel="stylesheet" href="assets/styles.css?v=e03a733814215655">
 <!-- loaded here, not at the foot, so the theme is set before the first paint -->
 <script src="assets/theme.js?v=8c949dd67ab72b9e"></script>
 </head>
@@ -226,19 +226,20 @@
           <input type="number" id="f-margin-max" min="0" placeholder="any">
         </div>
       </div>
-      <div class="f rangerow">
-        <span>Opponent’s ranking</span>
-<label for="f-rank-source" class="vh">Ranking source</label><select id="f-rank-source"><option value="archive">Archive reconstruction</option><option value="world">World Rugby published</option></select>
-<label for="rank-preset" class="vh">Opponent ranking shortcut</label><select id="rank-preset"><option value="">Custom / any rank</option><option value="1">No. 1</option><option value="2">No. 2</option><option value="3">No. 3</option><option value="4">No. 4</option><option value="5">No. 5</option><option value="top5">Top 5</option><option value="top10">Top 10</option></select>
-<p class="note">Select a team for opponent-based results. Without a team, either side may match. Unknown ranks are excluded when a range is set.</p>
-        <div class="rangepair">
-          <input type="number" id="f-oppr-min" min="1" placeholder="1">
-          <em>to</em>
-          <input type="number" id="f-oppr-max" min="1" placeholder="any">
+      <div class="f ranking-filter">
+        <label for="f-rank-source">Ranking source</label>
+        <select id="f-rank-source"><option value="archive">Reconstructed</option><option value="world">World Rugby</option></select>
+        <label for="rank-preset">Opponent rank</label>
+        <select id="rank-preset"><option value="">Any rank</option><option value="1">No. 1</option><option value="2">No. 2</option><option value="3">No. 3</option><option value="4">No. 4</option><option value="5">No. 5</option><option value="top5">Top 5</option><option value="top10">Top 10</option><option value="custom">Custom range</option></select>
+        <div id="rank-custom" class="rangepair" hidden>
+          <label>From<input type="number" id="f-oppr-min" min="1" placeholder="1"></label>
+          <label>To<input type="number" id="f-oppr-max" min="1" placeholder="Any"></label>
         </div>
+        <p class="note">Filter by the opponent’s rank at the time.</p>
+        <details class="quiet-detail"><summary>How this works</summary><p>Select a team for opponent-based results. Without a team, either side may match. Unknown ranks are excluded when a range is set. Reconstructed ranks include idle sides; World Rugby coverage begins in October 2003.</p></details>
       </div>
-      <div class="f"><label for="f-neutral">Ground</label><select id="f-neutral"><option value="any">Any ground</option><option value="1">Neutral only</option><option value="0">Not marked neutral</option></select></div>
-      <div class="f"><label for="f-breakdown">Scoring detail</label><select id="f-breakdown"><option value="any">Any coverage</option><option value="1">Complete breakdown available</option><option value="0">No complete breakdown</option></select></div>
+      <div class="f"><label for="f-neutral">Neutral venue</label><select id="f-neutral"><option value="any">Any</option><option value="1">Neutral only</option><option value="0">Not marked neutral</option></select></div>
+      <div class="f"><label for="f-breakdown">Scoring breakdown</label><select id="f-breakdown"><option value="any">Any</option><option value="1">Complete</option><option value="0">Incomplete</option></select></div>
     </section>
   </aside>
 
@@ -330,15 +331,15 @@
         </div>
 
         <div class="card wide">
-          <div class="card-label">Longest runs <em class="hint">within this selection, in date order</em></div>
+          <div class="card-label">Longest winning run <em class="hint">within this selection</em></div>
+          <div class="streak-headline" id="k-winstreak">–</div>
+          <div id="streak-explanation"></div>
           <ul class="records">
-            <li><span>Winning streak</span><b id="k-winstreak">–</b></li>
             <li><span>Unbeaten run</span><b id="k-unbeaten">–</b></li>
             <li><span>Losing streak</span><b id="k-losestreak">–</b></li>
           </ul>
         </div>
 
-        <div id="streak-explanation" class="card streak-explanation"></div>
         <div class="card wide form">
           <div class="card-label">Most recent 30 results in this selection <em class="hint">newest on the right</em></div>
           <div class="formstrip" id="k-form"></div>
@@ -432,7 +433,7 @@
 <script src="data/archive-data.js?v=fba2eca642e2bfd7" onerror="window.__dataFailed=true"></script>
 <script src="data/legacy-match-links.js?v=9b2431557753b818"></script>
 <script src="assets/flags.js?v=99464811cdf1e80e"></script>
-<script src="assets/insights.js?v=661b6fe74b60c943"></script>
-<script src="assets/app.js?v=c0cb5f639dc61423"></script>
+<script src="assets/insights.js?v=8eb1c05de0168e3a"></script>
+<script src="assets/app.js?v=0a43320e98573a3f"></script>
 </body>
 </html>

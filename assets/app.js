@@ -1766,7 +1766,7 @@ function init() {
   onNum("f-year-from", "yearFrom"); onNum("f-year-to", "yearTo");
   onNum("f-margin-min", "marginMin"); onNum("f-margin-max", "marginMax");
   onSel('f-rank-source','rankSource');onSel('f-neutral','neutralFilter');onSel('f-breakdown','breakdownFilter');
-  document.getElementById('rank-preset').addEventListener('change',function(){var v=this.value;S.oppRankMin=v?(v.indexOf('top')===0?1:+v):null;S.oppRankMax=v?+v.replace('top',''):null;syncControls();refresh();});
+  document.getElementById('rank-preset').addEventListener('change',function(){var v=this.value;if(v==='custom'){document.getElementById('rank-custom').hidden=false;return;}S.oppRankMin=v?(v.indexOf('top')===0?1:+v):null;S.oppRankMax=v?+v.replace('top',''):null;syncControls();refresh();});
   onNum("f-oppr-min", "oppRankMin"); onNum("f-oppr-max", "oppRankMax");
 
   function segGroup(id, key) {
@@ -1986,7 +1986,9 @@ function resetAll() {
 function syncControls() {
   document.getElementById('f-rank-source').value=S.rankSource;
   document.getElementById('f-neutral').value=S.neutralFilter;document.getElementById('f-breakdown').value=S.breakdownFilter;
-  document.getElementById('rank-preset').value=S.oppRankMin===S.oppRankMax&&S.oppRankMin?String(S.oppRankMin):S.oppRankMin===1&&[5,10].includes(S.oppRankMax)?'top'+S.oppRankMax:'';
+  var rankPreset=S.oppRankMin===null&&S.oppRankMax===null?'':S.oppRankMin===S.oppRankMax&&[1,2,3,4,5].includes(S.oppRankMin)?String(S.oppRankMin):S.oppRankMin===1&&[5,10].includes(S.oppRankMax)?'top'+S.oppRankMax:'custom';
+  document.getElementById('rank-preset').value=rankPreset;
+  document.getElementById('rank-custom').hidden=rankPreset!=='custom';
   document.getElementById("f-team").value = S.team;
   document.getElementById("f-opp").value = S.opp;
   document.getElementById("f-country").value = S.country;
