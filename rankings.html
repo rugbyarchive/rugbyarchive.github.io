@@ -12,7 +12,7 @@
 <meta name="twitter:card" content="summary">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231f3864'/%3E%3Cellipse cx='16' cy='16' rx='11' ry='7' transform='rotate(-35 16 16)' fill='none' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M11 21 L21 11' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M13.5 16.5 L15.5 18.5 M16.5 13.5 L18.5 15.5' stroke='%23fff' stroke-width='1.6'/%3E%3C/svg%3E">
 <title>Rugby Archive — Rankings Time Machine</title>
-<link rel="stylesheet" href="assets/styles.css?v=9b5f2e59f6375566">
+<link rel="stylesheet" href="assets/styles.css?v=2f30db1c483731bf">
 <!-- loaded here, not at the foot, so the theme is set before the first paint -->
 <script src="assets/theme.js?v=8c949dd67ab72b9e"></script>
 </head>
@@ -66,7 +66,7 @@
         <div class="segbtns speed" id="speed">
           <button type="button" data-v="1" class="on">1×</button>
           <button type="button" data-v="2">2×</button>
-          <button type="button" data-v="4">4×</button>
+          <button type="button" data-v="4">4×</button><button type="button" data-v="10">10×</button><button type="button" data-v="20">20×</button>
         </div>
         <button type="button" id="today" class="ghostbtn">Latest available</button>
       </div>
@@ -89,8 +89,8 @@
     <div class="rule">
       <span>Teams with no recent match</span>
       <div class="segbtns" id="f-dormant">
-        <button type="button" data-v="show" class="on">Show all</button>
-        <button type="button" data-v="hide">Hide idle 4 years+</button>
+        <button type="button" data-v="show">Show all</button>
+        <button type="button" data-v="hide" class="on">Hide idle 4 years+</button>
       </div>
     </div>
     <div class="rule grow">
@@ -163,6 +163,6 @@
 </main>
 
 <script src="data/rankings-data.js?v=12f09df6c6330c40" onerror="window.__dataFailed=true"></script>
-<script src="assets/rankings.js?v=b62ba75e51dfaacd"></script>
+<script src="assets/rankings.js?v=c2c291d8274497ef"></script>
 </body>
 </html>

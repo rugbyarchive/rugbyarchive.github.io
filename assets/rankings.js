@@ -79,7 +79,7 @@ var DAY_LAST = isoToDay(D.last_match);
 /* lions defaults to "0" - EXCLUDED - because that is what World Rugby
    actually does. Their published ratings do not move across Lions Tests.
    Composite fixtures never change either side’s rating. */
-var S = { source: "archive", unit: "day", cursor: null, mode: "official", lions: "0", compare: "", find: "", dormant: "show",
+var S = { source: "archive", unit: "day", cursor: null, mode: "official", lions: "0", compare: "", find: "", dormant: "hide",
           day: DAY_LAST, sort: "rank", dir: 1 };
 var DORMANT_DAYS = 365 * 4;   // no match in four years
 
@@ -243,6 +243,12 @@ function lastImpact(key,limit){
   var found=-1;for(var i=0;i<CHANGES[key].length&&CHANGES[key][i]<=limit;i++)found=CHANGES[key][i];return found;
 }
 
+function activeTable(table, day) {
+  if (S.dormant !== 'hide') return table;
+  var out=Object.assign({},table),pos={};
+  out.order=table.order.filter(function(t){return day-table.last[t]<=DORMANT_DAYS;});
+  out.order.forEach(function(t,i){pos[t]=i+1;});out.pos=pos;return out;
+}
 function refresh() {
   if (S.source === 'world') { refreshOfficial(); return; }
   var t0 = performance.now();
@@ -251,7 +257,9 @@ function refresh() {
   var lastIndex = lastImpact(key,now.cursor-1), dayStart = lastIndex;
   while (dayStart > 0 && M[SETS[key].rows[dayStart-1]][0] === M[SETS[key].rows[lastIndex]][0]) dayStart--;
   var beforeDay = tableAt(key, S.day, dayStart-1);
-  var yearAgo = tableAt(key, S.day - 365);
+  var yearAgo = activeTable(tableAt(key, S.day - 365), S.day - 365);
+  now = activeTable(now, S.day);
+  beforeDay = activeTable(beforeDay, dayStart >= 0 && SETS[key].rows[dayStart] !== undefined ? M[SETS[key].rows[dayStart]][0]-1 : S.day);
   var cmp = S.compare ? tableAt(S.compare, S.day) : null;
   lastNow = now;
 
@@ -296,8 +304,9 @@ function refresh() {
     setText("k-no1", "—");
     setText("k-no1-sub", "no matches played yet");
   }
+  if(S.dormant==='hide'&&top1)setText('k-no1-sub',top1.rating.toFixed(2)+' points · highest-rated active side');
   setText("k-teams", now.order.length.toLocaleString("en-GB"));
-  setText("k-teams-sub", "ranked by the archive under these rules");
+  setText("k-teams-sub", S.dormant === "hide" ? "active within four years; positions renumbered" : "all reconstructed ranking entries");
   setText("k-matches", now.counted.toLocaleString("en-GB"));
   setText("k-matches-sub", "counted under these rules since 1871");
 
@@ -332,7 +341,7 @@ function refresh() {
   var set = SETS[key];
   document.getElementById("rulenote").textContent =
     'Archive reconstruction using World Rugby points-exchange rules' +
-    '. Matchday Δ is the cumulative change on the latest matchday to affect ratings, up to this step. Matches follow archive order; kickoff order may be unknown.';
+    '. '+(S.dormant==='hide'?'Idle sides hidden after four years (archive policy, not a specified World Rugby cutoff). Active positions are renumbered. ':'')+'Matchday Δ is the cumulative change on the latest matchday to affect ratings, up to this step. Matches follow archive order; kickoff order may be unknown.';
   syncTimeline(now.cursor-1);
 
   drawHead();
@@ -458,8 +467,9 @@ function syncTimeline(index){
   var n=days.filter(function(d){return d===S.day;}).length;
   setText('step-status', official&&S.unit==='snapshot'?'Latest changed snapshot: '+(index>=0?shortDate(days[index]):'none')+' · 1× = 5 seconds per update':
     (S.unit==='match'&&index>=0?'After match '+(index-first+1)+' of '+n+' · archive order':'After the matchday')+(official?' · Published ratings may stay unchanged':'')+' · 1× = 5 seconds per step');
-  document.getElementById('previous').disabled=index<=0;
-  document.getElementById('next').disabled=index>=days.length-1;
+  if(calendarUnit())setText('step-status','Calendar '+S.unit.replace('calendar-','')+' steps · latest ratings available by this date'+(official?' · published ratings may stay unchanged':'')+' · '+(5000/+S.speed/1000)+' seconds per step');
+  document.getElementById('previous').disabled=calendarUnit()?S.day<=bounds()[0]:index<=0;
+  document.getElementById('next').disabled=calendarUnit()?S.day>=bounds()[1]:index>=days.length-1;
   document.getElementById('play').disabled=!days.length;
   document.querySelector('.asat-label').textContent=official?'World Rugby snapshot available by':'Archive rankings after counted matches on';
   setText('buildinfo',official?'Official snapshots · October 2003 to '+shortDate(bounds()[1]):'Archive reconstruction · 1871 to '+shortDate(DAY_LAST));
@@ -468,7 +478,7 @@ function sourceControls(){
   var official=S.source==='world',b=bounds();
   ['f-dormant'].forEach(function(id){document.getElementById(id).closest('.rule').hidden=official;});
   var unit=document.getElementById('step-unit');
-  unit.innerHTML=(official?'<option value="snapshot">Published update</option>':'')+'<option value="day">Matchday</option><option value="match">One match</option>';
+  unit.innerHTML=(official?'<option value="snapshot">Published update</option>':'')+'<option value="day">Matchday</option><option value="match">One match</option><option value="calendar-day">Calendar day</option><option value="week">Week</option><option value="month">Month</option><option value="year">Year</option>';
   unit.value=S.unit;
   ['datebox','slider'].forEach(function(id){var el=document.getElementById(id);el.min=id==='datebox'?dayToISO(b[0]):b[0];el.max=id==='datebox'?dayToISO(b[1]):b[1];});
   document.getElementById('sliderticks').innerHTML='';
@@ -623,7 +633,17 @@ function init() {
 
 /* Step to the previous/next date on which the table actually changed, so the
    arrow keys never land on a day where nothing happened. */
+function calendarUnit(){return ['calendar-day','week','month','year'].indexOf(S.unit)>=0;}
+function calendarAdvance(day,dir){
+  if(S.unit==='calendar-day'||S.unit==='week')return day+dir*(S.unit==='week'?7:1);
+  var date=new Date(Date.parse(dayToISO(day)+'T00:00:00Z')),original=date.getUTCDate();
+  date.setUTCDate(1);date.setUTCMonth(date.getUTCMonth()+dir*(S.unit==='year'?12:1));
+  var end=new Date(Date.UTC(date.getUTCFullYear(),date.getUTCMonth()+1,0)).getUTCDate();
+  date.setUTCDate(Math.min(original,end));return isoToDay(date.toISOString().slice(0,10));
+}
+function atEnd(){return calendarUnit()?S.day>=bounds()[1]:selectedIndex()>=eventDays().length-1;}
 function step(dir) {
+  if(calendarUnit()){var b=bounds();S.day=Math.max(b[0],Math.min(b[1],calendarAdvance(S.day,dir)));S.cursor=null;refresh();return;}
   var days=eventDays(),i=selectedIndex();if(!days.length)return;
   if((S.source==='world'&&S.unit==='snapshot')||S.unit==='match')i+=dir;
   else if(dir>0){i++;if(i<days.length){var next=days[i];while(i+1<days.length&&days[i+1]===next)i++;}}
@@ -638,13 +658,13 @@ S.speed = "1";
 function toggle() { if (timer) stop(); else start(); }
 function start() {
   if(!eventDays().length)return;
-  if (selectedIndex() >= eventDays().length-1) {S.cursor=0;S.day=eventDays()[0];refresh();}
+  if (atEnd()) {S.cursor=null;S.day=bounds()[0];refresh();}
   document.getElementById("play").textContent = "❚❚ Pause";
   document.getElementById("play").classList.add("on");
   timer = setInterval(function () {
-    if(selectedIndex()>=eventDays().length-1){stop();return;}
+    if(atEnd()){stop();return;}
     step(1);
-    if(selectedIndex()>=eventDays().length-1)stop();
+    if(atEnd())stop();
   }, 5000 / +S.speed);
 }
 function stop() {
@@ -667,7 +687,7 @@ function exportCSV() {
              "Source," + (S.source === 'world' ? 'World Rugby published snapshots' : 'Archive reconstruction'),
              "Rule set," + q(S.source === 'world' ? 'World Rugby published' : SETS[key].label),
              "Step," + q(document.getElementById('step-status').textContent),
-             "Idle teams," + q(S.dormant === "hide"
+             "Idle teams," + q(S.source === 'world' ? 'World Rugby published membership and positions retained' : S.dormant === "hide"
                ? "hidden (no match in four years)" : "shown"),
              "", head.map(q).join(",")];
   rows.forEach(function (x) {

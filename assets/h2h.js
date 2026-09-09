@@ -424,13 +424,13 @@ function renderRivalry() {
   writeHash();
 }
 
-function splitTable(groups, ai) {
+function splitTable(groups, ai, chronological) {
   var keys = Object.keys(groups);
   if (!keys.length) return '<p class="nodata">nothing recorded</p>';
   var rows = keys.map(function (k) {
     var st = analyse(groups[k], ai);
-    return { k: k, st: st };
-  }).sort(function (a, b) { return b.st.played - a.st.played; });
+    return { k: k, st: st, first: Math.min.apply(null, groups[k].map(function(i){return yearOf(ROWS[i]);})) };
+  }).sort(function (a, b) { return chronological ? a.first - b.first : b.st.played - a.st.played; });
   return '<table class="mini"><thead><tr><th></th><th>P</th><th>W</th>' +
     "<th>D</th><th>L</th><th>Win%</th></tr></thead><tbody>" +
     rows.map(function (r) {
@@ -455,7 +455,7 @@ function renderSplits(list, ai, st) {
     (comp[ck] = comp[ck] || []).push(i);
   });
   document.getElementById("split-venue").innerHTML = splitTable(venue, ai);
-  document.getElementById("split-era").innerHTML = splitTable(era, ai);
+  document.getElementById("split-era").innerHTML = splitTable(era, ai, true);
   document.getElementById("split-comp").innerHTML = splitTable(comp, ai);
 }
 

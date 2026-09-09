@@ -75,7 +75,7 @@ var S = {
   country: "", city: "", venue: "",
   comp: "", wc: "any", elig: "any", mclass: "any", full: "any",
   result: "any", marginMin: null, marginMax: null,
-  oppRankMin: null, oppRankMax: null,
+  oppRankMin: null, oppRankMax: null, rankSource: "archive", neutralFilter: "any", breakdownFilter: "any",
   sort: "date", dir: -1
 };
 
@@ -161,14 +161,18 @@ function passes(i) {
 
   if (S.result !== "any" && outcome(r) !== S.result) return false;
 
+  if (S.neutralFilter !== "any" && r[F.neutral] !== +S.neutralFilter) return false;
+  if (S.breakdownFilter !== "any" && !!(D.breakdowns || {})[String(i)] !== (S.breakdownFilter === "1")) return false;
   if (S.oppRankMin !== null || S.oppRankMax !== null) {
-    var ranks;
-    if (t >= 0) ranks = [h === t ? r[F.away_rank_before] : r[F.home_rank_before]];
-    else ranks = [r[F.home_rank_before], r[F.away_rank_before]];
+    var ranks, hf = S.rankSource === 'world' ? F.home_wr_rank : F.home_rank_before;
+    var af = S.rankSource === 'world' ? F.away_wr_rank : F.away_rank_before;
+    if (S.rankSource === 'world' && !r[F.wr_available]) return false;
+    if (t >= 0) ranks = [h === t ? r[af] : r[hf]];
+    else ranks = [r[hf], r[af]];
     var ok = false;
     for (var k = 0; k < ranks.length; k++) {
       var rk = ranks[k];
-      if (rk === null) continue;
+      if (!Number.isFinite(rk) || rk <= 0) continue;
       if (S.oppRankMin !== null && rk < S.oppRankMin) continue;
       if (S.oppRankMax !== null && rk > S.oppRankMax) continue;
       ok = true; break;
@@ -1389,15 +1393,17 @@ function activeFilters() {
         ["marginMin", "marginMax"]);
   }
   if (S.oppRankMin !== null || S.oppRankMax !== null) {
-    add("opprank", (team ? "opponent" : "a side") + " ranked " +
+    add("opprank", (S.rankSource === "world" ? "World Rugby: " : "Archive: ") + (team ? "opponent" : "a side") + " ranked " +
         (S.oppRankMin === null ? "1" : S.oppRankMin) + "–" +
         (S.oppRankMax === null ? "any" : S.oppRankMax) + " at the time",
         ["oppRankMin", "oppRankMax"]);
   }
+  if (S.neutralFilter !== "any") add("neutralFilter", S.neutralFilter === "1" ? "marked neutral" : "not marked neutral", ["neutralFilter"]);
+  if (S.breakdownFilter !== "any") add("breakdownFilter", S.breakdownFilter === "1" ? "complete scoring breakdown" : "incomplete scoring breakdown", ["breakdownFilter"]);
   return out;
 }
 
-var DEFAULTS = { team: "", opp: "", country: "", city: "", venue: "", comp: "",
+var DEFAULTS = { rankSource: "archive", neutralFilter: "any", breakdownFilter: "any", team: "", opp: "", country: "", city: "", venue: "", comp: "",
                  side: "any", wc: "any", elig: "any", result: "any",
                  mclass: "any", full: "any", yearFrom: null, yearTo: null,
                  marginMin: null, marginMax: null, oppRankMin: null,
@@ -1577,6 +1583,9 @@ function refresh() {
   view = sortView();
   var a = analyse(view);
   renderAnalysis(a);
+  window.RugbyInsights.render(D, view, S.teamI, a, function(source,lo,hi){
+    S.rankSource=source;S.oppRankMin=lo;S.oppRankMax=hi;syncControls();refresh();
+  });
   drawHead();
   renderTable();
   /* Kept as a number, no longer painted on the page: how many milliseconds a
@@ -1756,6 +1765,8 @@ function init() {
   }
   onNum("f-year-from", "yearFrom"); onNum("f-year-to", "yearTo");
   onNum("f-margin-min", "marginMin"); onNum("f-margin-max", "marginMax");
+  onSel('f-rank-source','rankSource');onSel('f-neutral','neutralFilter');onSel('f-breakdown','breakdownFilter');
+  document.getElementById('rank-preset').addEventListener('change',function(){var v=this.value;S.oppRankMin=v?(v.indexOf('top')===0?1:+v):null;S.oppRankMax=v?+v.replace('top',''):null;syncControls();refresh();});
   onNum("f-oppr-min", "oppRankMin"); onNum("f-oppr-max", "oppRankMax");
 
   function segGroup(id, key) {
@@ -1965,7 +1976,7 @@ function resetAll() {
   S.team = S.opp = S.country = S.city = S.venue = S.comp = "";
   S.side = S.wc = S.elig = S.result = S.mclass = S.full = "any";
   S.yearFrom = S.yearTo = S.marginMin = S.marginMax = null;
-  S.oppRankMin = S.oppRankMax = null;
+  S.oppRankMin = S.oppRankMax = null;S.rankSource="archive";S.neutralFilter=S.breakdownFilter="any";
   S.dows = [];
   S.sort = "date"; S.dir = -1;
   syncControls();
@@ -1973,6 +1984,9 @@ function resetAll() {
 }
 
 function syncControls() {
+  document.getElementById('f-rank-source').value=S.rankSource;
+  document.getElementById('f-neutral').value=S.neutralFilter;document.getElementById('f-breakdown').value=S.breakdownFilter;
+  document.getElementById('rank-preset').value=S.oppRankMin===S.oppRankMax&&S.oppRankMin?String(S.oppRankMin):S.oppRankMin===1&&[5,10].includes(S.oppRankMax)?'top'+S.oppRankMax:'';
   document.getElementById("f-team").value = S.team;
   document.getElementById("f-opp").value = S.opp;
   document.getElementById("f-country").value = S.country;
@@ -2058,7 +2072,7 @@ function matchFromHash(raw) {
 }
 
 // ---------------------------------------------- shareable / bookmarkable
-var HASH_KEYS = ["team", "opp", "side", "yearFrom", "yearTo", "country",
+var HASH_KEYS = ["rankSource", "neutralFilter", "breakdownFilter", "team", "opp", "side", "yearFrom", "yearTo", "country",
                  "city", "venue", "comp", "wc", "elig", "mclass", "full", "result",
                  "marginMin", "marginMax", "oppRankMin", "oppRankMax",
                  "sort", "dir"];
