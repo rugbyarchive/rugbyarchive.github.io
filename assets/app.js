@@ -787,9 +787,26 @@ function scoringBlock(r, i) {
     return "<th>" + h + "</th>";
   }).join("") + "<th>Total</th>" +
     (checkable ? "<th>Adds up?</th>" : "") + "</tr>";
-  var body = sides.map(function (s2) {
+  /* A GOAL FROM A MARK IS THE ONE FIGURE THAT MAY BE ABSENT rather than nil on
+     an otherwise complete breakdown, and printing "·" for it said "none were
+     scored" on 1,483 matches where the truth is that nobody wrote it down -
+     547 of them before 1978, while a mark was still a legal way to score. The
+     pipeline now ships which sides actually have one, and this prints an
+     em dash where it does not. The total is unaffected: an unrecorded mark
+     cannot be added to anything either way. */
+  var MARKS = (SC && SC.marks_recorded) || {};
+  var markSeen = MARKS[String(i)] || [0, 0];
+  var markCol = BO.indexOf("home_marks");
+  var body = sides.map(function (s2, si) {
     var cells = "<tr><td>" + esc(s2.name) + "</td>" +
-      s2.counts.map(function (n) { return "<td>" + (n || "·") + "</td>"; }).join("") +
+      s2.counts.map(function (n, ci) {
+        if (ci === markCol && !markSeen[si]) {
+          return '<td><span class="na" title="No goal-from-a-mark figure is ' +
+            'recorded for this side. It is not counted in the total.">' +
+            "&mdash;</span></td>";
+        }
+        return "<td>" + (n || "·") + "</td>";
+      }).join("") +
       '<td class="tot">' + s2.got + "</td>";
     if (checkable) {
       var calc = pointsFrom(s2.counts, era);
@@ -1234,11 +1251,14 @@ function linkHashFor(i) {
   var parts = h ? h.split("&").filter(function (p) {
     return p.slice(0, 6) !== "match=";
   }) : [];
-  parts.push("match=" + ROWS[i][F.excel_row]);
+  parts.push("match=" + encodeURIComponent(ROWS[i][F.match_id]));
   return "#" + parts.join("&");
 }
 function rowForExcel(n) {
-  for (var i = 0; i < N; i++) if (ROWS[i][F.excel_row] === n) return i;
+  if (typeof n === "number") n = (window.RUGBY_LEGACY_MATCH_IDS || {})[n] || null;
+  for (var i = 0; i < N; i++) {
+    if (typeof n === "number" ? ROWS[i][F.excel_row] === n : ROWS[i][F.match_id] === n) return i;
+  }
   return -1;
 }
 /* Open the linked match and put it on screen. Called after the first render,
@@ -1279,8 +1299,8 @@ function notFoundMatch(excelRow) {
   if (!bar || !set) return;
   bar.hidden = false;
   set.insertAdjacentHTML("beforeend",
-    '<span class="fchip warn">The linked match (spreadsheet row ' +
-    excelRow + ") is not in this filtered list</span>");
+    '<span class="fchip warn">The linked match (' +
+    esc(excelRow) + ") is not available in this filtered list</span>");
 }
 
 function setText(id, v) { document.getElementById(id).textContent = v; }
@@ -2028,8 +2048,10 @@ function matchFromHash(raw) {
   var h = (raw === undefined ? location.hash : raw).replace(/^#/, ""), out = null;
   h.split("&").forEach(function (p) {
     if (p.slice(0, 6) === "match=") {
-      var n = +decodeURIComponent(p.slice(6));
-      if (!isNaN(n)) out = n;
+      try {
+        var value = decodeURIComponent(p.slice(6));
+        out = /^\d+$/.test(value) ? Number(value) : value || null;
+      } catch (_) { out = null; }
     }
   });
   return out;
@@ -2056,7 +2078,7 @@ function writeHash() {
      one match, and changing a filter should not silently drop it from the URL
      they might copy next. */
   var m = matchFromHash();
-  if (m !== null) parts.push("match=" + m);
+  if (m !== null) parts.push("match=" + encodeURIComponent(m));
   writingHash = true;
   var h = parts.length ? "#" + parts.join("&") : "";
   if (location.hash !== h) {

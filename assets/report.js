@@ -10,7 +10,7 @@
   var row = matches[0], lookup = data.lookups;
   function name(side) { return lookup.team_era && row[fields[side + '_as']] != null ? lookup.team_era[row[fields[side + '_as']]] : lookup.teams[row[fields[side]]]; }
   var fixture = row[fields.date] + ' — ' + name('home') + ' ' + row[fields.home_score] + '–' + row[fields.away_score] + ' ' + name('away');
-  var matchUrl = new URL('index.html', location.href); matchUrl.hash = 'match=' + row[fields.excel_row];
+  var matchUrl = new URL('index.html', location.href); matchUrl.hash = 'match=' + encodeURIComponent(id);
   document.getElementById('report-fixture').value = fixture;
   document.getElementById('report-id').value = id;
   document.getElementById('report-url').value = matchUrl.href;
