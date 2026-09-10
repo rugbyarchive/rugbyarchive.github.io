@@ -461,15 +461,17 @@ function eventDays(){
 function officialIndex(){var i=-1;while(i+1<WR_EVENTS.length&&WR_EVENTS[i+1][0]<=S.day)i++;return i;}
 function selectedIndex(){var days=eventDays(),i=-1;while(i+1<days.length&&days[i+1]<=S.day)i++;return S.cursor===null?i:S.cursor;}
 function bounds(){return S.source==='world'?[isoToDay('2003-10-06'),WR.length?WR[WR.length-1][0]:isoToDay('2003-10-06')]:[DAY_FIRST,DAY_LAST];}
+var selectedMilestone=null;
+function milestoneTableKey(snapshot){
+  var entries=[];for(var i=0;i<snapshot[1].length;i+=3)entries.push([snapshot[1][i],snapshot[1][i+1],Math.round(snapshot[1][i+2]*100)]);
+  entries.sort(function(a,b){return a[0]-b[0];});return JSON.stringify(entries);
+}
 function syncTimeline(index){
-  var milestone=JUMPS.find(function(j){return j[1]===dayToISO(S.day)&&j[2];}),note=document.getElementById('milestone-note');
-  if(note){note.hidden=!milestone;note.innerHTML=milestone?esc(milestone[1]+' · '+milestone[2])+' <a href="'+esc(milestone[3])+'" target="_blank" rel="noopener noreferrer">Source ↗</a>':'';}
+  if(selectedMilestone&&(selectedMilestone.target!==S.day||selectedMilestone.source!==S.source))selectedMilestone=null;
+  var milestone=JUMPS.find(function(j){return j[1]===(selectedMilestone?selectedMilestone.date:dayToISO(S.day));}),note=document.getElementById('milestone-note');
+  if(note){note.hidden=!milestone;note.innerHTML=milestone?esc(milestone[1]+' · '+(milestone[2]||milestone[0]))+(milestone[3]?' <a href="'+esc(milestone[3])+'" target="_blank" rel="noopener noreferrer">Source ↗</a>':''):'';}
   if(note && milestone && S.source==='world'){
-    var nextSaved=WR.find(function(s){return s[0]>S.day;});
-    note.innerHTML+='<br><strong>Match date, not necessarily the post-match ranking update.</strong> Official tables can reflect results later; saved snapshot coverage is incomplete.';
-    if(milestone[1]==='2016-11-05')note.innerHTML+=' Ireland’s rise to fifth was published on 7 November; our next saved table is 11 November. <a href="https://www.irishrugby.ie/2016/11/07/ireland-rise-to-fifth-in-world-rankings/" target="_blank" rel="noopener noreferrer">Update report ↗</a>';
-    if(nextSaved)note.innerHTML+=' <button type="button" class="ghostbtn" id="next-milestone-snapshot">Next saved snapshot: '+esc(shortDate(nextSaved[0]))+' →</button>';
-    if(nextSaved)document.getElementById('next-milestone-snapshot').onclick=function(){stop();S.cursor=null;S.day=nextSaved[0];refresh();};
+    note.innerHTML+='<br><strong>Match: '+esc(milestone[1])+'. Official snapshot: '+esc(dayToISO(S.day))+'.</strong> '+(selectedMilestone&&selectedMilestone.target>isoToDay(milestone[1])?'Showing the next saved changed table after the match. Changes compare with the saved match-date table and can include other matches.':'No later changed snapshot is available; this table may not reflect the result.');
   }
 
   var days=eventDays(), official=S.source==='world', first=index;
@@ -496,6 +498,7 @@ function sourceControls(){
 }
 function refreshOfficial(){
   var now=officialAt(S.day),year=officialAt(S.day-365),idx=officialIndex(),prev=officialAt(idx>0?WR_EVENTS[idx-1][0]:isoToDay('2003-10-06')-1);
+  if(selectedMilestone&&selectedMilestone.source==='world'&&selectedMilestone.target===S.day)prev=officialAt(isoToDay(selectedMilestone.date));
   lastNow=now;
   rows=now.order.map(function(t){return {id:t,name:nameAt(t,S.day),rank:now.pos[t],rating:now.rating[t],move:year.pos[t]===undefined?null:year.pos[t]-now.pos[t],chg:year.rating[t]===undefined?null:now.rating[t]-year.rating[t],impact:prev.rating[t]===undefined?null:now.rating[t]-prev.rating[t],rankImpact:prev.pos[t]===undefined?null:prev.pos[t]-now.pos[t]};});
   if(S.find)rows=rows.filter(function(r){return r.name.toLowerCase().includes(S.find.toLowerCase());});
@@ -511,7 +514,7 @@ function refreshOfficial(){
   document.getElementById('k-recent').innerHTML=rec.map(function(m){return '<li><span>'+shortDate(m[0])+'</span> '+esc(nameAt(m[1],m[0]))+' <b>'+m[3]+'–'+m[4]+'</b> '+esc(nameAt(m[2],m[0]))+'</li>';}).join('')+
     '<li class="dnote">Archive context, not verified attribution of World Rugby’s exchange. Other matches or corrections may contribute.</li>';
   setText('rowcount',rows.length);setText('asat-date',pretty(S.day));document.getElementById('datebox').value=dayToISO(S.day);document.getElementById('slider').value=S.day;
-  setText('rulenote','World Rugby’s actual positions and ratings. Latest available snapshot: '+(now.snapshot===null?'none':pretty(now.snapshot))+'. Update Δ compares the latest changed snapshot with its predecessor. No intermediate match ratings are invented.'+((D.official.missing_dates||[]).length?' Weekly backfill is incomplete; the timeline uses saved snapshots.':'')+(now.snapshot!==null&&S.day-now.snapshot>7?' Warning: this snapshot is more than a week older than your selected date.':''));
+  setText('rulenote','World Rugby’s actual positions and ratings. Latest available snapshot: '+(now.snapshot===null?'none':pretty(now.snapshot))+'. '+(selectedMilestone&&selectedMilestone.target===S.day?'Update Δ compares with the saved match-date table for the selected milestone.':'Update Δ compares the latest changed snapshot with its predecessor.')+' No intermediate match ratings are invented.'+((D.official.missing_dates||[]).length?' Weekly backfill is incomplete; the timeline uses saved snapshots.':'')+(now.snapshot!==null&&S.day-now.snapshot>7?' Warning: this snapshot is more than a week older than your selected date.':''));
   syncTimeline(selectedIndex());drawHead();spacer.style.height=rows.length*ROW_H+'px';emptyEl.hidden=!!rows.length;paint();setText('perf','');
 }
 
@@ -598,7 +601,15 @@ function init() {
     stop();
     [].forEach.call(this.children, function (c) { c.classList.remove("on"); });
     b.classList.add("on");
-    S.cursor=null; S.day = Math.min(bounds()[1], Math.max(bounds()[0], isoToDay(b.dataset.d)));
+    var matchDay=isoToDay(b.dataset.d),target=matchDay;
+    if(S.source==='world'&&b.dataset.d!=='2003-10-06'){
+      var before=null;WR.forEach(function(s){if(s[0]<=matchDay)before=s;});
+      var beforeKey=before?milestoneTableKey(before):null;
+      var after=WR.find(function(s){return s[0]>matchDay&&milestoneTableKey(s)!==beforeKey;});
+      if(after)target=after[0];
+    }
+    S.cursor=null;S.day=Math.min(bounds()[1],Math.max(bounds()[0],target));
+    selectedMilestone=S.source==='world'&&b.dataset.d!=='2003-10-06'?{date:b.dataset.d,target:S.day,source:S.source}:null;
     refresh();
   });
 
