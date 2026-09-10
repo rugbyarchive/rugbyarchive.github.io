@@ -656,6 +656,14 @@ function init() {
     else if (e.key === " ") { e.preventDefault(); toggle(); }
   });
 
+  if(window.location){
+    var params=new URLSearchParams(window.location.search),linkedDate=params.get('date');
+    if(params.get('source')==='world'){S.source='world';S.unit='snapshot';}
+    if(linkedDate&&/^\d{4}-\d{2}-\d{2}$/.test(linkedDate)&&Number.isFinite(isoToDay(linkedDate)))S.day=Math.max(bounds()[0],Math.min(bounds()[1],isoToDay(linkedDate)));
+    var linkedTeam=TEAMS.indexOf(params.get('team'));if(linkedTeam>=0)S.find=nameAt(linkedTeam,S.day);
+    document.getElementById('f-find').value=S.find;
+    document.querySelectorAll('#f-source button').forEach(function(b){b.classList.toggle('on',b.dataset.v===S.source);b.setAttribute('aria-pressed',String(b.dataset.v===S.source));});
+  }
   sourceControls();refresh();
   document.getElementById("loading").hidden = true;
   document.getElementById("app").hidden = false;

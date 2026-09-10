@@ -1583,6 +1583,7 @@ function refresh() {
   view = sortView();
   var a = analyse(view);
   renderAnalysis(a);
+  window.renderRankingRecords(S.team, S.opp);
   window.RugbyInsights.render(D, view, S.teamI, a, function(source,lo,hi){
     S.rankSource=source;S.oppRankMin=lo;S.oppRankMax=hi;syncControls();refresh();
   });
