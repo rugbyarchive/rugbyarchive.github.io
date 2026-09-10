@@ -462,6 +462,9 @@ function officialIndex(){var i=-1;while(i+1<WR_EVENTS.length&&WR_EVENTS[i+1][0]<
 function selectedIndex(){var days=eventDays(),i=-1;while(i+1<days.length&&days[i+1]<=S.day)i++;return S.cursor===null?i:S.cursor;}
 function bounds(){return S.source==='world'?[isoToDay('2003-10-06'),WR.length?WR[WR.length-1][0]:isoToDay('2003-10-06')]:[DAY_FIRST,DAY_LAST];}
 function syncTimeline(index){
+  var milestone=JUMPS.find(function(j){return j[1]===dayToISO(S.day)&&j[2];}),note=document.getElementById('milestone-note');
+  if(note){note.hidden=!milestone;note.innerHTML=milestone?esc(milestone[1]+' · '+milestone[2])+' <a href="'+esc(milestone[3])+'" target="_blank" rel="noopener noreferrer">Source ↗</a>':'';}
+
   var days=eventDays(), official=S.source==='world', first=index;
   while(first>0&&days[first-1]===days[index])first--;
   var n=days.filter(function(d){return d===S.day;}).length;
@@ -517,7 +520,17 @@ var JUMPS = [
   ["2011 RWC final", "2011-10-23"],
   ["2015 RWC final", "2015-10-31"],
   ["2019 RWC final", "2019-11-02"],
-  ["2023 RWC final", "2023-10-28"]
+  ["2023 RWC final", "2023-10-28"],
+  ["France's first Test", "1906-01-01", "France played their first official Test, losing 38-8 to New Zealand in Paris.", "https://api.www.ffr.fr/wp-content/uploads/2019/06/Centenaire_complet_BAT.pdf"],
+  ["USA Olympic gold", "1924-05-18", "USA beat France 17-3 to retain Olympic rugby gold in Paris.", "https://www.world.rugby/news/569389/18-mai-1924-le-jour-ou-les-usa-sont-devenus-champions-olympiques"],
+  ["France first beat NZ", "1954-02-27", "France beat New Zealand for the first time, winning 3-0 at Colombes.", "https://api.www.ffr.fr/wp-content/uploads/2019/06/Centenaire_complet_BAT.pdf"],
+  ["Samoa stun Wales", "1991-10-06", "Western Samoa won their Rugby World Cup debut, beating Wales 16-13 in Cardiff.", "https://www.world.rugby/news/609721/classic-rugby-world-cup-pool-matches?lang=en"],
+  ["Italy's Six Nations debut", "2000-02-05", "Italy won their first Six Nations match, beating defending champions Scotland 34-20.", "https://www.federugby.it/sliding-doors-azzurre-lesordio-la-prima-vittoria-un-nuovo-capitolo-alessandro-troncon-racconta-italia-scozia-del-2000/"],
+  ["Japan's Brighton miracle", "2015-09-19", "Japan beat South Africa 34-32 in one of the Rugby World Cup's greatest upsets.", "https://www.world.rugby/news/571453/1000?lang=es"],
+  ["Ireland first beat NZ", "2016-11-05", "Ireland beat New Zealand for the first time, winning 40-29 in Chicago.", "https://www.irishrugby.ie/2016/11/05/in-pics-ireland-40-new-zealand-29/"],
+  ["Uruguay stun Fiji", "2019-09-25", "Uruguay beat Fiji 30-27 at the Rugby World Cup in Kamaishi.", "https://www.uru.org.uy/historica-victoria-de-los-teros-en-el-debut-13?nid=1016"],
+  ["Argentina first beat NZ", "2020-11-14", "Argentina beat New Zealand for the first time, winning 25-15 in Sydney.", "https://www.world.rugby/news/603830/argentina-all-blacks-tri-nations-2020?lang=en"],
+  ["Portugal's first RWC win", "2023-10-08", "Portugal secured their first Rugby World Cup win, beating Fiji 24-23 in Toulouse.", "https://www.world.rugby/news/876030/fji-23-24-por-match-analysis?lang=fr"]
 ];
 
 var MONTHS_L = ["January", "February", "March", "April", "May", "June",
@@ -557,8 +570,8 @@ function init() {
   }
   document.getElementById("sliderticks").innerHTML = ticks.join("");
 
-  document.getElementById("jumps").innerHTML = JUMPS.map(function (j) {
-    return '<button type="button" data-d="' + j[1] + '">' + j[0] + "</button>";
+  document.getElementById("jumps").innerHTML = JUMPS.slice().sort(function(a,b){return a[1].localeCompare(b[1]);}).map(function (j) {
+    return '<button type="button" data-d="' + j[1] + '" title="' + esc(j[1] + (j[2] ? ' · '+j[2] : '')) + '">' + esc(j[0]) + "</button>";
   }).join("");
 
   slider.addEventListener("input", function () {
