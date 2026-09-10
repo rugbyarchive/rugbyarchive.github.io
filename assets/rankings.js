@@ -464,6 +464,13 @@ function bounds(){return S.source==='world'?[isoToDay('2003-10-06'),WR.length?WR
 function syncTimeline(index){
   var milestone=JUMPS.find(function(j){return j[1]===dayToISO(S.day)&&j[2];}),note=document.getElementById('milestone-note');
   if(note){note.hidden=!milestone;note.innerHTML=milestone?esc(milestone[1]+' · '+milestone[2])+' <a href="'+esc(milestone[3])+'" target="_blank" rel="noopener noreferrer">Source ↗</a>':'';}
+  if(note && milestone && S.source==='world'){
+    var nextSaved=WR.find(function(s){return s[0]>S.day;});
+    note.innerHTML+='<br><strong>Match date, not necessarily the post-match ranking update.</strong> Official tables can reflect results later; saved snapshot coverage is incomplete.';
+    if(milestone[1]==='2016-11-05')note.innerHTML+=' Ireland’s rise to fifth was published on 7 November; our next saved table is 11 November. <a href="https://www.irishrugby.ie/2016/11/07/ireland-rise-to-fifth-in-world-rankings/" target="_blank" rel="noopener noreferrer">Update report ↗</a>';
+    if(nextSaved)note.innerHTML+=' <button type="button" class="ghostbtn" id="next-milestone-snapshot">Next saved snapshot: '+esc(shortDate(nextSaved[0]))+' →</button>';
+    if(nextSaved)document.getElementById('next-milestone-snapshot').onclick=function(){stop();S.cursor=null;S.day=nextSaved[0];refresh();};
+  }
 
   var days=eventDays(), official=S.source==='world', first=index;
   while(first>0&&days[first-1]===days[index])first--;
