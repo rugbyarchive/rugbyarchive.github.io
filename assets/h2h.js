@@ -440,6 +440,33 @@ function splitTable(groups, ai, chronological) {
     }).join("") + "</tbody></table>";
 }
 
+// Strip edition years only: divisions, qualification stages and tour routes stay distinct.
+function competitionFamily(label) {
+  return label.replace(/^\d{4}(?:\s*[-–/]\s*\d{2,4})?\s+/, '').replace(/\s+\d{4}(?:\s*[-–/]\s*\d{2,4})?$/, '').trim();
+}
+function competitionTable(groups, ai) {
+  var families={};
+  Object.keys(groups).forEach(function(label){
+    var name=competitionFamily(label),key=name.toLowerCase();
+    if(!families[key])families[key]={name:name,all:[],editions:{}};
+    var family=families[key];
+    groups[label].forEach(function(i){
+      family.all.push(i);
+      var edition=label===name?String(yearOf(ROWS[i])):label;
+      (family.editions[edition]=family.editions[edition]||[]).push(i);
+    });
+  });
+  var entries=Object.keys(families).map(function(k){return families[k];}).sort(function(a,b){return b.all.length-a.all.length||a.name.localeCompare(b.name);});
+  if(!entries.length)return '<p class="nodata">nothing recorded</p>';
+  return '<table class="mini competition-groups"><thead><tr><th>Competition</th><th>P</th><th>W</th><th>D</th><th>L</th><th>Win%</th></tr></thead><tbody>'+entries.map(function(g,n){
+    var st=analyse(g.all,ai),expand=g.name!=='Not recorded'&&Object.keys(g.editions).length>1,id='competition-editions-'+n;
+    var label=expand?'<button type="button" class="competition-toggle" aria-expanded="false" aria-controls="'+id+'"><span aria-hidden="true">▸</span> '+esc(g.name)+'</button>':esc(g.name);
+    var row='<tr class="competition-total"><td>'+label+'</td><td>'+st.played+'</td><td>'+st.won+'</td><td>'+st.drawn+'</td><td>'+st.lost+'</td><td>'+pct(st.won,st.played)+'</td></tr>';
+    if(expand)row+='<tr id="'+id+'" class="competition-editions" hidden><td colspan="6"><div class="competition-years" tabindex="0" aria-label="'+esc(g.name)+' editions, scroll for more">'+splitTable(g.editions,ai,true)+'</div></td></tr>';
+    return row;
+  }).join('')+'</tbody></table>';
+}
+
 var periodGroup = 'decade';
 function renderSplits(list, ai, st) {
   var venue = {}, era = {}, comp = {};
@@ -460,7 +487,7 @@ function renderSplits(list, ai, st) {
   document.getElementById('period-title').textContent = periodGroup === 'decade' ? 'By decade' : 'By scoring era';
   document.getElementById('period-note').hidden = periodGroup !== 'scoring';
   document.querySelectorAll('[data-period]').forEach(function(button){button.setAttribute('aria-pressed', String(button.dataset.period === periodGroup));});
-  document.getElementById("split-comp").innerHTML = splitTable(comp, ai);
+  document.getElementById("split-comp").innerHTML = competitionTable(comp, ai);
 }
 
 function eraLabel(y) {
@@ -759,6 +786,11 @@ function init() {
     oppDirection=column===oppSort?-oppDirection:(column===0||column>=8?1:-1);oppSort=column;
     renderAllOpponents();document.getElementById('oppwrap').scrollTop=0;
     document.querySelector('[data-opp-sort="'+column+'"]').focus();
+  });
+  document.getElementById('split-comp').addEventListener('click',function(e){
+    var button=e.target.closest('.competition-toggle');if(!button)return;
+    var open=button.getAttribute('aria-expanded')!=='true';button.setAttribute('aria-expanded',String(open));
+    button.querySelector('span').textContent=open?'▾':'▸';document.getElementById(button.getAttribute('aria-controls')).hidden=!open;
   });
   document.getElementById('period-group').addEventListener('click',function(e){
     var button=e.target.closest('[data-period]');if(!button)return;
