@@ -273,7 +273,8 @@ function drawChart(st, aName, bName) {
           'clip-path="url(#clipBelow)"/>';
   html += '<line class="zero" x1="' + padL + '" x2="' + (W - padR) +
           '" y1="' + y0 + '" y2="' + y0 + '" stroke="' + C_ZERO + '"/>';
-  html += '<path d="' + d + '" class="lead"/>';
+  html += '<path d="' + d + '" class="lead lead-a" style="stroke:' + C_A + '" clip-path="url(#clipAbove)"/>';
+  html += '<path d="' + d + '" class="lead lead-b" style="stroke:' + C_B + '" clip-path="url(#clipBelow)"/>';
 
   var lastV = pts[pts.length - 1].v;
   var lead = lastV > 0 ? aName : (lastV < 0 ? bName : "level");
@@ -312,6 +313,7 @@ function drawChart(st, aName, bName) {
     var p = pts[+t.dataset.i], r = ROWS[p.s.i];
     cursor.setAttribute("cx", x(p.t));
     cursor.setAttribute("cy", y(p.v));
+    cursor.style.stroke = p.v > 0 ? C_A : p.v < 0 ? C_B : C_ZERO;
     cursor.removeAttribute("hidden");
     tip.hidden = false;
     // p.s.mine / p.s.theirs are from team A's point of view, so when A was
