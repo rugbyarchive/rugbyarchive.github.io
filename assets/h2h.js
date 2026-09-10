@@ -530,7 +530,10 @@ function paintMeetings() {
 }
 
 // ------------------------------------------------------- all-opponents view
-var oppRows = [];
+var oppRows = [], oppSort=1, oppDirection=-1;
+function opponentSortValue(x,column){
+  return [x.opp,x.st.played,x.st.won,x.st.drawn,x.st.lost,x.st.played?x.st.won/x.st.played:0,x.st.pf,x.st.pa,x.first,x.last][column];
+}
 function renderAllOpponents() {
   var t0 = performance.now();
   var ai = teamIndexOf(S.a);
@@ -546,10 +549,9 @@ function renderAllOpponents() {
     return { opp: TEAMS[o], st: st,
              first: ROWS[by[o][0]][F.date], last: ROWS[by[o][by[o].length - 1]][F.date] };
   }).sort(function (x, y) {
-    // most-played first, then alphabetical - never an arbitrary order for
-    // opponents a team has met the same number of times
-    return (y.st.played - x.st.played) ||
-           (x.opp < y.opp ? -1 : (x.opp > y.opp ? 1 : 0));
+    var a=opponentSortValue(x,oppSort),b=opponentSortValue(y,oppSort);
+    var diff=typeof a==='string'?a.localeCompare(b):a-b;
+    return diff*oppDirection||x.opp.localeCompare(y.opp);
   });
 
   document.getElementById("rivalry").hidden = true;
@@ -573,7 +575,8 @@ function renderAllOpponents() {
   head.innerHTML = ["Opponent", "P", "W", "D", "L", "Win%", "For", "Against",
                     "First met", "Last met"]
     .map(function (l, i) {
-      return '<div class="' + (i > 0 && i < 8 ? "num" : "") + '">' + l + "</div>";
+      var active=i===oppSort,dir=active?(oppDirection===1?'ascending':'descending'):'not sorted';
+      return '<button type="button" data-opp-sort="'+i+'" class="'+(i>0&&i<8?'num':'')+(active?' sorted':'')+'" aria-label="Sort by '+l+'; '+dir+'" title="Sort by '+l+'">'+l+(active?(oppDirection===1?' ▲':' ▼'):'')+'</button>';
     }).join("");
   var out = view.map(function (x) {
     return '<div class="trow" style="grid-template-columns:' + grid + '">' +
@@ -746,6 +749,13 @@ function init() {
     S.a = S.b = ""; readHash(); syncControls(); refresh();
   });
 
+  document.getElementById('opphead').addEventListener('click',function(e){
+    var button=e.target.closest('[data-opp-sort]');if(!button)return;
+    var column=+button.dataset.oppSort;
+    oppDirection=column===oppSort?-oppDirection:(column===0||column>=8?1:-1);oppSort=column;
+    renderAllOpponents();document.getElementById('oppwrap').scrollTop=0;
+    document.querySelector('[data-opp-sort="'+column+'"]').focus();
+  });
   readHash();
   syncControls();
   refresh();
