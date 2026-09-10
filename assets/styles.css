@@ -593,6 +593,9 @@ table.mini tr:last-child td{border-bottom:0}
 .h2h .tablebar,.h2h .tablehead{margin-top:0}
 .h2h .tablewrap.short{height:340px}
 .h2h .tablewrap{position:relative;background:#fff;overflow-y:auto}
+/* All opponents are rendered together, so their rows must define the height. */
+.h2h #oppbody{position:relative}
+.h2h #oppwrap{max-height:65vh;overflow-y:auto}
 .h2h .trow{display:grid;align-items:center;height:30px;font-size:12.5px;
   border-bottom:1px solid var(--line-soft)}
 .h2h .trow:hover{background:#f4f7fc}
