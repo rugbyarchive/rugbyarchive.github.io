@@ -440,6 +440,7 @@ function splitTable(groups, ai, chronological) {
     }).join("") + "</tbody></table>";
 }
 
+var periodGroup = 'decade';
 function renderSplits(list, ai, st) {
   var venue = {}, era = {}, comp = {};
   list.forEach(function (i) {
@@ -448,7 +449,7 @@ function renderSplits(list, ai, st) {
            : (r[F.home] === ai ? "Home" : "Away");
     (venue[vk] = venue[vk] || []).push(i);
     var y = yearOf(r);
-    var ek = eraLabel(y);
+    var ek = periodGroup === 'decade' ? String(Math.floor(y / 10) * 10) + 's' : eraLabel(y);
     (era[ek] = era[ek] || []).push(i);
     var ck = r[F.competition] === null ? "Not recorded"
            : LK.competition[r[F.competition]];
@@ -456,6 +457,9 @@ function renderSplits(list, ai, st) {
   });
   document.getElementById("split-venue").innerHTML = splitTable(venue, ai);
   document.getElementById("split-era").innerHTML = splitTable(era, ai, true);
+  document.getElementById('period-title').textContent = periodGroup === 'decade' ? 'By decade' : 'By scoring era';
+  document.getElementById('period-note').hidden = periodGroup !== 'scoring';
+  document.querySelectorAll('[data-period]').forEach(function(button){button.setAttribute('aria-pressed', String(button.dataset.period === periodGroup));});
   document.getElementById("split-comp").innerHTML = splitTable(comp, ai);
 }
 
@@ -755,6 +759,10 @@ function init() {
     oppDirection=column===oppSort?-oppDirection:(column===0||column>=8?1:-1);oppSort=column;
     renderAllOpponents();document.getElementById('oppwrap').scrollTop=0;
     document.querySelector('[data-opp-sort="'+column+'"]').focus();
+  });
+  document.getElementById('period-group').addEventListener('click',function(e){
+    var button=e.target.closest('[data-period]');if(!button)return;
+    periodGroup=button.dataset.period;refresh();
   });
   readHash();
   syncControls();

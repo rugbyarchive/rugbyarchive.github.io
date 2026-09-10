@@ -123,7 +123,12 @@
         <div id="split-venue"></div>
       </div>
       <div class="splitcard">
-        <div class="card-label">By era</div>
+        <div class="card-label" id="period-title">By decade</div>
+        <div class="insight-switch" id="period-group" role="group" aria-label="Group rivalry history">
+          <button type="button" data-period="decade" aria-pressed="true">By decade</button>
+          <button type="button" data-period="scoring" aria-pressed="false">By scoring era</button>
+        </div>
+        <p class="note" id="period-note" hidden>Periods follow the scoring-rule changes used by score restatement.</p>
         <div id="split-era"></div>
       </div>
       <div class="splitcard">
@@ -169,6 +174,6 @@
 </main>
 
 <script src="data/archive-data.js?v=fba2eca642e2bfd7" onerror="window.__dataFailed=true"></script>
-<script src="assets/h2h.js?v=8132ec1336f0283f"></script>
+<script src="assets/h2h.js?v=b3572f74fce23274"></script>
 </body>
 </html>
