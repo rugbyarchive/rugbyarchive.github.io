@@ -1358,4 +1358,4 @@ details[open]>summary::after{color:var(--collapse-color);padding-inline-start:12
 @media(max-width:600px){.mainnav{gap:5px}.mainnav a{padding:6px 8px;font-size:12px}}
 
 /* Expand and Collapse share the same action colour. */
-details>summary::after,#expandall{color:var(--collapse-color)}
+details>summary::after,#expandall{color:var(--collapse-color)!important}
