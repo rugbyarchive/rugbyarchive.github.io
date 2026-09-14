@@ -1243,6 +1243,7 @@ function syncExpandAll() {
   if (!b) return;
   var all = allOpen();
   b.textContent = all ? "Collapse all" : "Expand all";
+  b.classList.toggle('collapse-action', all);
   b.disabled = !view.length;
 }
 
