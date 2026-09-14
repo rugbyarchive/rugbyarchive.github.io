@@ -1359,3 +1359,17 @@ details[open]>summary::after{color:var(--collapse-color);padding-inline-start:12
 
 /* Expand and Collapse share the same action colour. */
 details>summary::after,#expandall{color:var(--collapse-color)!important}
+
+/* Filtered charts share the archive palette and replace the dense table. */
+.charts-mode #analysis,.charts-mode #hero,.charts-mode #rank-insights,.charts-mode .matchtable,.charts-mode .tableguide,.charts-mode #statstoggle,.charts-mode #viewswitch,.charts-mode .densityswitch,.charts-mode .colmenu,.charts-mode #expandall{display:none!important}
+.result-view{flex-shrink:0}.tablebar .result-view{margin-right:auto;margin-left:12px}
+#filter-charts{padding:16px;min-width:0;--chart-for:var(--t-team);--chart-against:var(--loss)}
+#filter-charts h2{font-size:15px;margin:16px 0 8px;color:var(--ink)}
+.chart-summary{margin:0 0 16px;padding-bottom:12px;border-bottom:1px solid var(--line);font-size:12px;color:var(--ink)}
+.chart-controls{display:flex;flex-wrap:wrap;gap:12px}.chart-controls label,#chart-inspect>label{display:flex;flex-direction:column;gap:5px;color:var(--muted);font-size:11px}
+.chart-controls select,#chart-period{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:7px 9px;max-width:100%}
+.chart-note,.chart-help p{font-size:11px;color:var(--muted);line-height:1.6}.chart-note{margin:10px 0}
+.chart-legend{display:flex;gap:18px;font-size:11px;color:var(--muted);min-height:16px}.chart-legend span{display:flex;align-items:center;gap:6px}.chart-key{display:inline-block;width:16px;height:2px;background:var(--chart-for)}.chart-key.against{background:var(--chart-against)}
+#chart-canvas svg{display:block;width:100%;height:auto;max-height:380px;overflow:visible}.chart-grid{stroke:var(--line-soft);stroke-width:1}.chart-axis{font:10px var(--mono);fill:var(--muted)}.chart-bar{fill:var(--chart-for);opacity:.6}.chart-line{fill:none;stroke:var(--chart-for);stroke-width:2}.chart-dot{fill:var(--chart-for)}.chart-line.against{stroke:var(--chart-against);stroke-dasharray:6 3}.chart-dot.against{fill:var(--chart-against)}.chart-hit{fill:transparent;cursor:pointer}.chart-hit:hover{fill:var(--t-team);fill-opacity:.08}
+#chart-inspect{display:flex;gap:12px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:12px;margin-top:8px}#chart-detail{flex:1;min-width:180px;font-size:12px;color:var(--ink);line-height:1.7}#chart-matches{color:var(--t-team)}.chart-help{margin-top:20px}
+@media(max-width:700px){.tablebar{flex-wrap:wrap}.tablebar .result-view{margin-left:0}#filter-charts{padding:12px}#chart-canvas svg{min-height:230px}.chart-controls label:first-child{flex:1}.chart-controls select{width:100%}#chart-inspect>label{width:100%}#chart-detail{min-width:0;flex-basis:100%}}

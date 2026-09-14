@@ -1595,6 +1595,10 @@ function refresh() {
      toolbar next to the match count as though the two were comparable.
      verify_site.py times this independently and never read the element. */
   lastRefreshMs = performance.now() - t0;
+  window.FilterCharts.render({team:S.teamI>=0?S.team:null,from:S.yearFrom,to:S.yearTo,stats:a,
+    rows:view.map(function(i){var r=ROWS[i],sc=myScores(r);return {date:r[F.date],pf:sc[0],pa:sc[1]};}),
+    open:function(from,to){S.yearFrom=from;S.yearTo=to;syncControls();refresh();}
+  });
   writeHash();
 }
 
