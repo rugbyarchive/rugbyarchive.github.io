@@ -1596,7 +1596,7 @@ function refresh() {
      verify_site.py times this independently and never read the element. */
   lastRefreshMs = performance.now() - t0;
   window.FilterCharts.render({team:S.teamI>=0?S.team:null,from:S.yearFrom,to:S.yearTo,stats:a,
-    rows:view.map(function(i){var r=ROWS[i],sc=myScores(r);return {date:r[F.date],pf:sc[0],pa:sc[1]};}),
+    rows:view.map(function(i){var r=ROWS[i],sc=myScores(r);return {date:r[F.date],pf:sc[0],pa:sc[1],archiveRank:r[r[F.home]===S.teamI?F.away_rank_before:F.home_rank_before],worldRank:r[F.wr_available]?r[r[F.home]===S.teamI?F.away_wr_rank:F.home_wr_rank]:null};}),
     open:function(from,to){S.yearFrom=from;S.yearTo=to;syncControls();refresh();}
   });
   writeHash();
