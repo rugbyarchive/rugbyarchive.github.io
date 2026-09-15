@@ -71,7 +71,7 @@ var VENUE = new Array(N);   // "stadium city country", lower-cased, for search
 // ----------------------------------------------------------------- filters
 var S = {
   team: "", opp: "", side: "any",
-  yearFrom: null, yearTo: null, dows: [],
+  yearFrom: null, yearTo: null, dateFrom:"", dateTo:"", dows: [],
   country: "", city: "", venue: "",
   comp: "", wc: "any", elig: "any", mclass: "any", full: "any",
   result: "any", marginMin: null, marginMax: null,
@@ -141,6 +141,8 @@ function passes(i) {
   if (t >= 0 && o >= 0 && h !== o && a !== o) return false;
 
   var y = YEAR[i];
+  if (S.dateFrom && r[F.date] < S.dateFrom) return false;
+  if (S.dateTo && r[F.date] > S.dateTo) return false;
   if (S.yearFrom !== null && y < S.yearFrom) return false;
   if (S.yearTo !== null && y > S.yearTo) return false;
   if (S.dows.length && S.dows.indexOf(DOW[i]) === -1) return false;
@@ -1365,6 +1367,7 @@ function activeFilters() {
   if (S.side === "home") add("side", team ? team + " at home" : "at home", ["side"]);
   if (S.side === "away") add("side", team ? team + " away" : "away", ["side"]);
   if (S.side === "neutral") add("side", "at neutral venues", ["side"]);
+  if(S.dateFrom||S.dateTo)add("dates",(S.dateFrom||"Start")+" to "+(S.dateTo||"latest"),["dateFrom","dateTo"]);
   if (S.yearFrom || S.yearTo) {
     add("years", (S.yearFrom || 1871) + "–" + (S.yearTo || 2026),
         ["yearFrom", "yearTo"]);
@@ -1404,7 +1407,7 @@ function activeFilters() {
   return out;
 }
 
-var DEFAULTS = { rankSource: "archive", neutralFilter: "any", breakdownFilter: "any", team: "", opp: "", country: "", city: "", venue: "", comp: "",
+var DEFAULTS = {dateFrom:"",dateTo:"", rankSource: "archive", neutralFilter: "any", breakdownFilter: "any", team: "", opp: "", country: "", city: "", venue: "", comp: "",
                  side: "any", wc: "any", elig: "any", result: "any",
                  mclass: "any", full: "any", yearFrom: null, yearTo: null,
                  marginMin: null, marginMax: null, oppRankMin: null,
@@ -1979,6 +1982,7 @@ function init() {
 }
 
 function resetAll() {
+  S.dateFrom=S.dateTo="";
   S.team = S.opp = S.country = S.city = S.venue = S.comp = "";
   S.side = S.wc = S.elig = S.result = S.mclass = S.full = "any";
   S.yearFrom = S.yearTo = S.marginMin = S.marginMax = null;
@@ -2080,7 +2084,7 @@ function matchFromHash(raw) {
 }
 
 // ---------------------------------------------- shareable / bookmarkable
-var HASH_KEYS = ["rankSource", "neutralFilter", "breakdownFilter", "team", "opp", "side", "yearFrom", "yearTo", "country",
+var HASH_KEYS = ["dateFrom","dateTo","rankSource", "neutralFilter", "breakdownFilter", "team", "opp", "side", "yearFrom", "yearTo", "country",
                  "city", "venue", "comp", "wc", "elig", "mclass", "full", "result",
                  "marginMin", "marginMax", "oppRankMin", "oppRankMax",
                  "sort", "dir"];

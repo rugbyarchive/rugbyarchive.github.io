@@ -65,7 +65,57 @@ function teamIndexOf(name) {
 }
 
 
-var S = { a: "", b: "", basis: "played", era: null, find: "" };
+var S = { a: "", b: "", basis: "played", era: null, find: "", mode:"meetings", aFrom:"", aTo:"", bFrom:"", bTo:"", sameDates:false, testsOnly:true };
+
+
+var comparisonRows=[];
+function initComparison(){
+  var block=document.createElement('section');block.id='era-comparison-controls';block.hidden=true;
+  block.innerHTML='<div class="segbtns" id="comparison-mode" role="group" aria-label="Comparison mode"><button type="button" data-mode="meetings">Their meetings</button><button type="button" data-mode="compare">Compare eras</button></div><div id="comparison-dates" hidden><div class="era-date-grid">'+['a','b'].map(function(side){return '<fieldset><legend id="era-'+side+'-name"></legend><label>From<input type="date" id="'+side+'From"></label><label>To<input type="date" id="'+side+'To"></label></fieldset>';}).join('')+'</div><div class="era-options"><label><input type="checkbox" id="sameDates"> Use the same dates</label><label><input type="checkbox" id="testsOnly" checked> Full internationals only</label></div></div>';
+  document.querySelector('.pickbar').after(block);
+  var content=document.createElement('section');content.id='era-comparison';content.hidden=true;block.after(content);
+  block.addEventListener('click',function(e){var b=e.target.closest('[data-mode]');if(!b)return;S.mode=b.dataset.mode;refresh();writeHash();});
+  ['aFrom','aTo','bFrom','bTo','sameDates','testsOnly'].forEach(function(k){document.getElementById(k).addEventListener('change',function(){S[k]=this.type==='checkbox'?this.checked:this.value;refresh();writeHash();});});
+}
+function syncComparison(){
+  var both=teamIndexOf(S.a)>=0&&teamIndexOf(S.b)>=0,active=both&&S.mode==='compare';
+  document.getElementById('era-comparison-controls').hidden=!both;
+  document.getElementById('era-comparison').hidden=!active;
+  document.getElementById('comparison-dates').hidden=!active;
+  document.getElementById('f-basis').closest('.rule').hidden=active;
+  document.getElementById('export').disabled=false;
+  if(active){document.getElementById('basisnote').hidden=true;document.getElementById('era-wrap').hidden=true;}
+  document.querySelectorAll('[data-mode]').forEach(function(b){var on=b.dataset.mode===S.mode;b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on));});
+  ['a','b'].forEach(function(side){
+    document.getElementById('era-'+side+'-name').textContent=S[side]||'Team';
+    var ti=teamIndexOf(S[side]),dates=ROWS.filter(function(r){return r[F.home]===ti||r[F.away]===ti;}).map(function(r){return r[F.date];}).sort();
+    ['From','To'].forEach(function(end){var k=side+end;if(!S[k])S[k]=dates.length?dates[end==='From'?0:dates.length-1]:'';});
+  });
+  if(S.sameDates){S.bFrom=S.aFrom;S.bTo=S.aTo;}
+  ['aFrom','aTo','bFrom','bTo'].forEach(function(k){var el=document.getElementById(k);el.value=S[k];el.disabled=S.sameDates&&k[0]==='b';});
+  ['sameDates','testsOnly'].forEach(function(k){document.getElementById(k).checked=S[k];});
+}
+function eraProfile(side){
+  var ti=teamIndexOf(S[side]),list=[];
+  ROWS.forEach(function(r,i){if((r[F.home]===ti||r[F.away]===ti)&&r[F.date]>=S[side+'From']&&r[F.date]<=S[side+'To']&&(!S.testsOnly||r[F.full_intl]))list.push(i);});
+  list.sort(function(i,j){return ROWS[i][F.date].localeCompare(ROWS[j][F.date])||(ROWS[i][F.seq]||0)-(ROWS[j][F.seq]||0)||i-j;});
+  var st=analyse(list,ti);st.ranks={};
+  ['archive','world'].forEach(function(source){var vals=list.map(function(i){var r=ROWS[i];if(source==='world'&&!r[F.wr_available])return null;return r[F[(r[F.home]===ti?'away':'home')+(source==='world'?'_wr_rank':'_rank_before')]];}).filter(function(v){return Number.isFinite(v)&&v>0;});st.ranks[source]=vals.length?(vals.reduce(function(a,b){return a+b;},0)/vals.length).toFixed(1)+' · '+vals.length+'/'+list.length+' matches ranked':'Unavailable · 0/'+list.length+' matches ranked';});
+  st.list=list;return st;
+}
+function renderComparison(){
+  document.getElementById('rivalry').hidden=true;document.getElementById('allopp').hidden=true;
+  var target=document.getElementById('era-comparison');
+  if(['a','b'].some(function(side){return !S[side+'From']||!S[side+'To']||S[side+'From']>S[side+'To'];})){target.innerHTML='<p role="alert">Choose a valid From and To date for each team. From must be on or before To.</p>';comparisonRows=[];document.getElementById('export').disabled=true;return;}
+  var profiles=[eraProfile('a'),eraProfile('b')];
+  function average(s,k){return s.played?(s[k]/s.played).toFixed(1):'—';}
+  function match(record){if(!record)return '—';var r=ROWS[record.i];return r[F.date]+' · '+homeName(r)+' '+r[F.home_score]+'–'+r[F.away_score]+' '+awayName(r);}
+  var metrics=[['Win percentage',function(s){return pct(s.won,s.played);},true],['Average score (for / against)',function(s){return average(s,'pf')+' / '+average(s,'pa');},true],['Average margin',function(s){return s.played?((s.pf-s.pa)/s.played).toFixed(1):'—';},true],['Matches played',function(s){return num(s.played);}],['Wins / draws / losses',function(s){return s.won+' / '+s.drawn+' / '+s.lost;}],['Total points for / against',function(s){return num(s.pf)+' / '+num(s.pa);}],['Longest winning run',function(s){return s.played?s.wStreak+' matches'+(s.wSpan?' · '+s.wSpan.join(' to '):''):'—';}],['Longest unbeaten run',function(s){return s.played?s.uStreak+' matches'+(s.uSpan?' · '+s.uSpan.join(' to '):''):'—';}],['Biggest win',function(s){return match(s.big);}],['Biggest defeat',function(s){return match(s.bigAgainst);}],['Average opponent rank · archive',function(s){return s.ranks.archive;}],['Average opponent rank · published',function(s){return s.ranks.world;}]];
+  comparisonRows=[['Measure',S.a+' · '+S.aFrom+' to '+S.aTo,S.b+' · '+S.bFrom+' to '+S.bTo]];
+  var body=metrics.map(function(m){var values=profiles.map(m[1]);comparisonRows.push([m[0]].concat(values));return '<tr'+(m[2]?' class="era-priority"':'')+'><th scope="row">'+esc(m[0])+'</th>'+values.map(function(v,i){var rec=m[0]==='Biggest win'?profiles[i].big:m[0]==='Biggest defeat'?profiles[i].bigAgainst:null;return '<td>'+(rec?'<a href="index.html#match='+encodeURIComponent(ROWS[rec.i][F.match_id])+'">'+esc(v)+'</a>':esc(v))+'</td>';}).join('')+'</tr>';}).join('');
+  var links=['a','b'].map(function(side,i){var params=new URLSearchParams({team:S[side],dateFrom:S[side+'From'],dateTo:S[side+'To'],full:S.testsOnly?'1':'any'});return '<td><a class="ghostbtn" href="index.html#'+esc(params.toString().replace(/\+/g,'%20'))+'">View these matches ('+profiles[i].played+')</a></td>';}).join('');
+  target.innerHTML='<h2>Overall records against all opponents</h2><p class="note">'+(S.testsOnly?'Full internationals only':'All recorded fixtures')+' · scores as played · inclusive dates. Win percentage includes draws in the denominator.</p><div class="era-table-wrap"><table class="era-table"><thead><tr>'+comparisonRows[0].map(function(v){return '<th scope="col">'+esc(v)+'</th>';}).join('')+'</tr></thead><tbody>'+body+'<tr><th scope="row">Explore</th>'+links+'</tr></tbody></table></div><p class="note">Runs follow the selected fixture scope in date order; excluding non-Tests may join wins separated by those fixtures. A period with no matches has no rate or average. Rankings average known opponent positions per match: lower is stronger, unknown ranks are excluded. Archive ranks are reconstructed before each match and include idle sides; published match-date tables are available from October 2003 and may precede kickoff. Different opponents, schedules and historical scoring rules affect comparisons; these figures do not predict who would win.</p>';
+}
 
 // ------------------------------------------------------------------ helpers
 function esc(s) {
@@ -122,7 +172,7 @@ function valueWords(v) {
    the caller must say so. */
 function scores(i) {
   var r = ROWS[i];
-  if (S.basis === "played" || !SC) return [r[F.home_score], r[F.away_score], false];
+  if ((S.mode === "compare" && S.a && S.b) || S.basis === "played" || !SC) return [r[F.home_score], r[F.away_score], false];
   var b = BREAK[i];
   if (!b) return [r[F.home_score], r[F.away_score], false];
   var v = valuesFor(S.era);
@@ -673,6 +723,8 @@ function teamOptions(placeholder) {
 
 function refresh() {
   applyBasisNote();
+  syncComparison();
+  if (S.mode === "compare" && S.a && S.b) { renderComparison(); writeHash(); return; }
   if (S.a && S.b && S.a !== S.b) renderRivalry();
   else if (S.a) renderAllOpponents();
   else {
@@ -690,6 +742,10 @@ function refresh() {
 
 function writeHash() {
   var p = [];
+  if(S.mode==="compare")p.push("mode=compare");
+  ["aFrom","aTo","bFrom","bTo"].forEach(function(k){if(S[k])p.push(k+"="+encodeURIComponent(S[k]));});
+  if(S.sameDates)p.push("sameDates=1");
+  if(!S.testsOnly)p.push("testsOnly=0");
   if (S.a) p.push("a=" + encodeURIComponent(S.a));
   if (S.b) p.push("b=" + encodeURIComponent(S.b));
   if (S.basis === "restated") p.push("era=" + S.era);
@@ -701,10 +757,15 @@ function writeHash() {
 
 function readHash() {
   var h = location.hash.replace(/^#/, "");
+  S.mode="meetings"; S.sameDates=false; S.testsOnly=true; S.aFrom=S.aTo=S.bFrom=S.bTo="";
   if (!h) return;
   h.split("&").forEach(function (kv) {
     var p = kv.split("="), k = p[0], v = decodeURIComponent(p[1] || "");
-    if (k === "a") S.a = v;
+    if(k==="mode"&&v==="compare")S.mode=v;
+    else if(["aFrom","aTo","bFrom","bTo"].includes(k)&&/^\d{4}-\d{2}-\d{2}$/.test(v))S[k]=v;
+    else if(k==="sameDates")S.sameDates=v==="1";
+    else if(k==="testsOnly")S.testsOnly=v!=="0";
+    else if (k === "a") S.a = v;
     else if (k === "b") S.b = v;
     else if (k === "era") { S.basis = "restated"; S.era = +v; }
   });
@@ -733,6 +794,7 @@ function longDate(iso) {
 }
 
 function init() {
+  initComparison();
   document.getElementById("buildinfo").innerHTML =
     num(D.meta.matches) + " recorded matches · " + num(D.meta.teams) +
     " teams &amp; touring sides<br>complete to " +
@@ -757,7 +819,7 @@ function init() {
     S.b = this.value; refresh();
   });
   document.getElementById("swap").addEventListener("click", function () {
-    var t = S.a; S.a = S.b; S.b = t; syncControls(); refresh();
+    var t = S.a; S.a = S.b; S.b = t; ["From","To"].forEach(function(k){var d=S["a"+k];S["a"+k]=S["b"+k];S["b"+k]=d;}); syncControls(); refresh();
   });
   document.getElementById("f-basis").addEventListener("click", function (e) {
     var b = e.target.closest("button"); if (!b) return;
@@ -813,7 +875,10 @@ function exportCSV() {
     return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
   }
   var out = [];
-  if (S.a && S.b) {
+  if(S.mode==="compare"&&S.a&&S.b){
+    out.push(["Overall records against all opponents",S.testsOnly?"Full internationals":"All recorded fixtures","Scores as played"].map(q).join(","));
+    comparisonRows.forEach(function(r){out.push(r.map(q).join(","));});
+  } else if (S.a && S.b) {
     out.push(["Rivalry", S.a + " v " + S.b].map(q).join(","));
     out.push(["Scores", S.basis === "restated"
       ? "restated under the " + S.era + " system" : "as played"].map(q).join(","));
