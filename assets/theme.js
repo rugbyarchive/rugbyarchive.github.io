@@ -1,4 +1,4 @@
-/* Rugby Archive — the theme switch.
+/* Nuck's Rugby Archive — the theme switch.
    Two looks over one layout. The terminal theme is the default because nearly
    every value on this site is a number, and a monospace font aligns digits
    down the page; the light theme is kept for anyone who wants it, and for

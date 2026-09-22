@@ -1,4 +1,4 @@
-/* Rugby Archive — Rankings Time Machine.
+/* Nuck's Rugby Archive — Rankings Time Machine.
 
    The world table as at any date since 27 March 1871, under either ranking model.
 

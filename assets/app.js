@@ -1,4 +1,4 @@
-/* Rugby Archive — the Super Filter.
+/* Nuck's Rugby Archive — the Super Filter.
    Everything runs in the browser off one preloaded array. No server, no fetch.
 
    Speed strategy: matches stay as the raw arrays the pipeline emitted (no
@@ -2205,7 +2205,7 @@ function exportCSV() {
                       { type: "text/csv;charset=utf-8" });
   var a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "rugby-archive-filtered.csv";
+  a.download = "nucks-rugby-archive-filtered.csv";
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
 }

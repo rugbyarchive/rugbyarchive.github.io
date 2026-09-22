@@ -1,4 +1,4 @@
-# Rugby Archive
+# Nuck's Rugby Archive
 
 A complete, unified database of every international rugby union match, from the
 first ever international on 27 March 1871 to the present day — presented as a

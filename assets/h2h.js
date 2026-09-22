@@ -1,4 +1,4 @@
-/* Rugby Archive — Head to Head.
+/* Nuck's Rugby Archive — Head to Head.
 
    Two teams, every meeting, and who has been ahead across the whole rivalry.
    Also does score restatement: where the archive records a full try/kick

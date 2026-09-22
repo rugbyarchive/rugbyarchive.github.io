@@ -1,4 +1,4 @@
-/* Rugby Archive — Score Normalisation.
+/* Nuck's Rugby Archive — Score Normalisation.
 
    Re-scores historical matches under any scoring system rugby has used.
 

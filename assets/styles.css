@@ -1,4 +1,4 @@
-/* Rugby Archive — Super Filter
+/* Nuck's Rugby Archive — Super Filter
    Data-dense, quiet, fast. Nothing animates that does not have to. */
 
 :root{
@@ -1388,3 +1388,26 @@ details>summary::after,#expandall{color:var(--collapse-color)!important}
 
 /* Compact, consistently sized profile rows with directional comparisons. */
 .era-table th,.era-table td,.era-table .era-priority td{font-size:12px;padding:6px 10px;line-height:1.4}.era-table td{font-weight:normal}.era-table .era-better,.era-table .era-better a,.era-better{color:var(--win)}.era-table .era-worse,.era-table .era-worse a,.era-worse{color:var(--loss)}.meeting-dates{display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin-top:12px}.meeting-dates label{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--muted)}.meeting-dates input{font:inherit;background:var(--panel);color:var(--ink);border:1px solid var(--line);padding:6px;color-scheme:dark}.meeting-dates span{font-size:11px;color:var(--muted)}html[data-theme="light"] .meeting-dates input{color-scheme:light}@media(max-width:700px){.era-table th,.era-table td,.era-table .era-priority td{font-size:11px;padding:6px 5px}}
+
+/* Compact identity: keep the approved wordmark alongside existing navigation. */
+.topbar{align-items:center}
+.topbar .brand{display:grid;grid-template-columns:200px minmax(0,1fr);column-gap:20px;align-items:center}
+.topbar .site-brand{grid-column:1;grid-row:1 / 3;margin:0;line-height:0}
+.site-brand a{display:block;border-radius:4px}
+.site-brand a:focus-visible{outline:2px solid var(--t-accent);outline-offset:4px}
+.brand-logo{display:block;width:200px;max-width:100%;height:auto}
+.topbar .mainnav{grid-column:2;grid-row:1;margin-top:0}
+.topbar .themeswitch{grid-column:2;grid-row:2;justify-self:start;margin:4px 0 0}
+@media(max-width:1100px){
+ .topbar{flex-wrap:wrap;gap:8px 16px}
+ .topbar .buildinfo{white-space:normal;text-align:left}
+}
+@media(max-width:650px){
+ .topbar .brand{grid-template-columns:minmax(0,1fr);gap:8px;width:100%}
+ .topbar .site-brand{grid-column:1;grid-row:1}
+ .brand-logo{width:180px}
+ .topbar .mainnav{grid-column:1;grid-row:2}
+ .topbar .themeswitch{grid-column:1;grid-row:3;margin:0}
+}
+
+html[data-theme='light'] .site-brand a{background:#0b1117;border-radius:6px;width:fit-content}
