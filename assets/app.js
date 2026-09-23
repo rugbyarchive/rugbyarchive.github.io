@@ -1263,6 +1263,7 @@ function linkHashFor(i) {
 }
 function rowForExcel(n) {
   if (typeof n === "number") n = (window.RUGBY_LEGACY_MATCH_IDS || {})[n] || null;
+  n = (window.RUGBY_MATCH_ID_ALIASES || {})[n] || n;
   for (var i = 0; i < N; i++) {
     if (typeof n === "number" ? ROWS[i][F.excel_row] === n : ROWS[i][F.match_id] === n) return i;
   }
