@@ -1525,3 +1525,6 @@ input,textarea{font-family:var(--mono)!important}
  .topbar .brand{grid-template-columns:minmax(0,1fr)}
  .brand-ball{width:60px;height:64px;flex-basis:60px}
 }
+
+/* Downsample the large source cleanly; nearest-neighbour magnifies edge noise. */
+.brand-ball{image-rendering:auto}
