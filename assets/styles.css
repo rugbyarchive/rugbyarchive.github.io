@@ -703,12 +703,12 @@ main.sc{display:block;height:auto;min-height:calc(100vh - 62px)}
   --draw-bg:#2b2517;
   --loss-bg:#2c1719;
   /* the role tokens - the "syntax highlighting" */
-  --t-date:#6a9955;       /* comment green, for the date       */
-  --t-team:#9cdcfe;       /* identifier blue, for team names   */
-  --t-score:#dcdcaa;      /* function yellow, for the score    */
+  --t-date:#82a8cc;       /* muted blue, for dates */
+  --t-team:#8bd3ff;       /* sky blue, for team names */
+  --t-score:#b9e6ff;      /* icy blue, for scores and headline figures */
   --t-rank:#c586c0;       /* keyword mauve, for the ranking    */
   --t-meta:#868f9c;       /* muted, for venue and competition  */
-  --t-accent:#ce9178;     /* string orange, for highlights     */
+  --t-accent:#69bfff;     /* arcade blue, for decorative highlights */
 }
 [data-theme="terminal"] .tablewrap,
 [data-theme="terminal"] .card{background:var(--panel)}
@@ -1411,3 +1411,6 @@ details>summary::after,#expandall{color:var(--collapse-color)!important}
 }
 
 html[data-theme='light'] .site-brand a{background:#0b1117;border-radius:6px;width:fit-content}
+
+/* The About masthead picks up the wordmark's hard-edged navy depth. */
+[data-theme='terminal'] .about-intro h2{text-shadow:2px 2px 0 #173b60}
