@@ -1504,3 +1504,14 @@ button,select{font-family:var(--display)!important;letter-spacing:0}
   font-family:var(--mono)!important;font-variant-numeric:tabular-nums;letter-spacing:0;
 }
 input,textarea{font-family:var(--mono)!important}
+
+/* Heritage ball sprite and approved wordmark form one home-link identity. */
+.topbar .brand{grid-template-columns:260px minmax(0,1fr)}
+.site-brand a{display:flex;align-items:center;gap:4px;width:fit-content}
+.brand-ball{display:block;width:56px;height:64px;object-fit:contain;flex:0 0 56px;image-rendering:pixelated}
+.site-brand .brand-logo{flex:0 0 200px}
+@media(max-width:650px){
+ .topbar .brand{grid-template-columns:minmax(0,1fr)}
+ .brand-ball{width:52px;height:60px;flex-basis:52px}
+ .site-brand .brand-logo{flex-basis:180px}
+}
