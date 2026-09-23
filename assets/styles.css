@@ -1486,3 +1486,12 @@ details>summary:focus-visible{outline:2px solid var(--t-accent);outline-offset:-
 .quiet-detail>p,.tmextras>p{margin:10px}
 .quiet-detail>table,.quiet-detail>.insight-scroll{margin:10px;width:calc(100% - 20px)}
 @media(pointer:coarse){details>summary{min-height:44px!important}}
+
+/* Explicit control roles override older font:inherit shorthands. */
+.chips button,.segbtns button,.segbtns.sm button,.ghostbtn,.linkbtn,
+.insight-switch button,.insight-content button,.report-page button[type=submit]{
+  font-family:var(--display);font-size:14px;line-height:1.35;letter-spacing:0;
+}
+/* Exact dates must have unambiguous digits at every viewport size. */
+.asat-date{font-family:var(--mono);font-weight:600;letter-spacing:0;font-variant-numeric:tabular-nums}
+input[type=number],input[type=date],.years input{font-family:var(--mono);font-variant-numeric:tabular-nums}
