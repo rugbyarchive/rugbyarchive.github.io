@@ -1495,3 +1495,12 @@ details>summary:focus-visible{outline:2px solid var(--t-accent);outline-offset:-
 /* Exact dates must have unambiguous digits at every viewport size. */
 .asat-date{font-family:var(--mono);font-weight:600;letter-spacing:0;font-variant-numeric:tabular-nums}
 input[type=number],input[type=date],.years input{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* Typography roles take precedence over component font shorthands. */
+button,select{font-family:var(--display)!important;letter-spacing:0}
+.tmsteps label,.meeting-dates label,.era-date-grid label,.era-date-grid legend{font-family:var(--display);font-size:14px}
+.big,.wdl b,.hero-stats b,.about-stats strong,.rank-value,.streak-headline,
+.h2hhead .swins,.mtotal b,.asat-date,.segbtns.speed button{
+  font-family:var(--mono)!important;font-variant-numeric:tabular-nums;letter-spacing:0;
+}
+input,textarea{font-family:var(--mono)!important}
