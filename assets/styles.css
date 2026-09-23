@@ -1431,3 +1431,21 @@ h1,h2,.mainnav a,.about-stats strong{font-family:var(--display);font-weight:600;
 .about h2:not(.about-intro h2){font-size:28px}
 .about-stats strong{font-size:30px}
 @media(max-width:600px){.mainnav a{font-size:14px}.about h2:not(.about-intro h2){font-size:24px}}
+
+/* Arcade lettering for controls and headline stats; fixture tables and supporting
+   prose retain the compact monospace face for scanning long records. */
+select,button,input,textarea,
+.f>span,.f>label,.ranking-filter>label,.rule>span,.fgroup h3,
+.asat-label,.card-label,.hero-stats span,
+details>summary,.about-contents a,
+.big,.no1,.asat-date,.hero-stats b,.wdl b,.rank-value,.streak-headline,
+.h2hhead .sname,.h2hhead .swins,.mtotal b{
+  font-family:var(--display);letter-spacing:0;
+}
+select,.f select,.rule select,.report-page select,.chart-controls select{
+  font-family:var(--display);font-size:15px;
+}
+.about-contents a{font-size:15px}
+.f>span,.f>label,.ranking-filter>label,.rule>span,.card-label,.asat-label{font-size:12px}
+.hero-stats span{font-size:11px}
+details>summary::after,.card-label .hint,.rank-value span{font-family:var(--mono)}
