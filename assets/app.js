@@ -841,6 +841,7 @@ function scoringBlock(r, i) {
 
 function drawerHTML(i) {
   var r = ROWS[i], c = context(r);
+  var evidence = (window.RUGBY_MATCH_EVIDENCE || {})[r[F.match_id]];
   var hn = homeName(r), an = awayName(r);
   var hr = r[F.home_rank_before], ar = r[F.away_rank_before];
   var hR = r[F.home_rating_before], aR = r[F.away_rating_before];
@@ -863,8 +864,9 @@ function drawerHTML(i) {
     dd("Weekday", r[F.date_guessed]
         ? '<span class="na">the date is ambiguous, so no weekday is claimed</span>'
         : DAYS[DOW[i]]) +
+    (evidence && evidence.kickoff_local ? dd("Scheduled kick-off", esc(evidence.kickoff_local) + " (local)") : "") +
     dd("Attendance", c.crowd ? fmtNum(c.crowd)
-        : (awarded ? NA("An awarded or walkover match was never played")
+        : (evidence && evidence.attendance_text ? esc(evidence.attendance_text) : awarded ? NA("An awarded or walkover match was never played")
                    : null)) +
     dd("Match type", c.type ? esc(c.type) : null) +
     "</dl>";
@@ -968,6 +970,18 @@ function drawerHTML(i) {
     return "<li>" + t + "</li>";
   }).join("") + "</ul>";
 
+  var evidenceHTML = "";
+  if (evidence) {
+    var sourceLinks = (evidence.sources || []).filter(function (source) {
+      return /^https?:\/\//i.test(source.url);
+    }).map(function (source) {
+      return '<li><a href="' + esc(source.url) + '" target="_blank" rel="noopener noreferrer">' + esc(source.label) + '</a></li>';
+    }).join("");
+    evidenceHTML = '<section class="dgroup wide match-evidence"><h4>Sources and uncertainty</h4><ul class="dnotes">' +
+      (evidence.notes || []).map(function (note) { return '<li>' + esc(note) + '</li>'; }).join("") +
+      '</ul><ul class="dnotes">' + sourceLinks + '</ul></section>';
+  }
+
   var link = location.pathname + location.search + linkHashFor(i);
   return '<div class="drawer" id="det-' + i + '" role="region"' +
     ' aria-label="Match details">' +
@@ -976,7 +990,7 @@ function drawerHTML(i) {
       rank + "</section>" +
     '<section class="dgroup"><h4>World Rugby&rsquo;s published ranking</h4>' +
       wr + "</section>" +
-    scoringBlock(r, i) +
+    scoringBlock(r, i) + evidenceHTML +
     '<section class="dgroup wide"><h4>Record notes</h4>' + noteHTML +
       '<p class="dnote"><button type="button" class="linkbtn copylink"' +
       ' data-link="' + esc(link) + '">Copy a link to this match</button></p>' +
