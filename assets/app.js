@@ -715,10 +715,10 @@ function rowHTML(i, k) {
        place a reader scans it in bulk. */
     var awarded = /awarded|walkover|abandon/i.test(c.type || "");
     cells += '<div role="cell" class="c-crowd" title="' +
-      (c.crowd ? fmtNum(c.crowd) + " recorded"
+      (c.crowd != null ? fmtNum(c.crowd) + " recorded"
         : (awarded ? "Not applicable - this match was awarded or never played"
                    : "Attendance has never been established for this match")) +
-      '">' + (c.crowd ? fmtNum(c.crowd)
+      '">' + (c.crowd != null ? fmtNum(c.crowd)
         : (awarded ? '<span class="na">n/a</span>'
                    : '<span class="nr">–</span>')) + "</div>";
   }
@@ -865,7 +865,7 @@ function drawerHTML(i) {
         ? '<span class="na">the date is ambiguous, so no weekday is claimed</span>'
         : DAYS[DOW[i]]) +
     (evidence && evidence.kickoff_local ? dd("Scheduled kick-off", esc(evidence.kickoff_local) + " (local)") : "") +
-    dd("Attendance", c.crowd ? fmtNum(c.crowd)
+    dd("Attendance", c.crowd != null ? fmtNum(c.crowd)
         : (evidence && evidence.attendance_text ? esc(evidence.attendance_text) : awarded ? NA("An awarded or walkover match was never played")
                    : null)) +
     dd("Match type", c.type ? esc(c.type) : null) +
