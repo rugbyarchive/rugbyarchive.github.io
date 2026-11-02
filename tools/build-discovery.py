@@ -36,6 +36,7 @@ def build(site):
   text=pagehead+'<body>'+nav+body+'<script src="assets/mobile.js" defer></script></body></html>';target=site/filename;target.parent.mkdir(exist_ok=True);target.write_text(text,encoding='utf-8',newline='\n');pages.append((filename,title,len(rows)))
  links=''.join('<li><a href="'+p+'">'+esc(title)+'</a> · '+str(n)+' recorded matches</li>' for p,title,n in pages)
  dh=re.sub(r'<title>.*?</title>','<title>Explore teams and rivalries — Nuck’s Rugby Archive</title>',head)
+ dh=re.sub(r'(<meta property="og:title" content=")[^"]*',lambda m:m[1]+'Explore teams and rivalries',dh)
  dh=re.sub(r'(<link rel="canonical" href=")[^"]*',lambda m:m[1]+'https://rugbyarchive.github.io/discover.html',dh)
  dh=re.sub(r'(<meta (?:name="description"|property="og:description") content=")[^"]*',lambda m:m[1]+'Explore recorded rugby results by team and rivalry, with links to full match records.',dh)
  (site/'discover.html').write_text(dh+'<body>'+nav+'<main class="about"><h1>Explore teams and rivalries</h1><p>A first selection of archive summaries. The interactive tools cover the full archive.</p><ul>'+links+'</ul><p><a href="index.html">Explore every recorded match</a></p></main><script src="assets/mobile.js" defer></script></body></html>',encoding='utf-8',newline='\n')

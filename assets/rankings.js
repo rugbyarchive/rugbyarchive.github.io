@@ -654,18 +654,34 @@ function init() {
     else if (e.key === " ") { e.preventDefault(); toggle(); }
   });
 
-  if(window.location){
-    var params=new URLSearchParams(window.location.search),linkedDate=params.get('date');
-    if(params.get('source')==='world'){S.source='world';S.unit='snapshot';}
-    if(linkedDate&&/^\d{4}-\d{2}-\d{2}$/.test(linkedDate)&&Number.isFinite(isoToDay(linkedDate)))S.day=Math.max(bounds()[0],Math.min(bounds()[1],isoToDay(linkedDate)));
-    var linkedTeam=TEAMS.indexOf(params.get('team'));if(linkedTeam>=0)S.find=nameAt(linkedTeam,S.day);
-    document.getElementById('f-find').value=S.find;
-    document.querySelectorAll('#f-source button').forEach(function(b){b.classList.toggle('on',b.dataset.v===S.source);b.setAttribute('aria-pressed',String(b.dataset.v===S.source));});
-  }
+  readRankingLink();
+  window.addEventListener('hashchange', function () {
+    if (readRankingLink()) { stop(); sourceControls(); refresh(); }
+  });
   sourceControls();refresh();
   document.getElementById("loading").hidden = true;
   document.getElementById("app").hidden = false;
   paint();
+}
+
+/* New links use fragments like the other tools; old query links remain valid.
+   Parse the complete link before changing state, including real calendar dates. */
+function readRankingLink() {
+  var raw=location.hash.slice(1)||location.search.slice(1);
+  if(!raw)return false;
+  try { decodeURIComponent(raw.replace(/\+/g,' ')); } catch (_) { return false; }
+  var params=new URLSearchParams(raw),source=params.get('source')||'archive';
+  var date=params.get('date'),team=params.get('team'),day=date?isoToDay(date):null;
+  if(source!=='archive'&&source!=='world')return false;
+  if(date&&(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Number.isFinite(day)||dayToISO(day)!==date))return false;
+  var index=team?TEAMS.indexOf(team):-1;
+  if(team&&index<0)return false;
+  S.source=source;S.unit=source==='world'?'snapshot':'day';S.cursor=null;
+  S.day=Math.max(bounds()[0],Math.min(bounds()[1],day===null?S.day:day));
+  S.find=index>=0?nameAt(index,S.day):'';
+  document.getElementById('f-find').value=S.find;
+  document.querySelectorAll('#f-source button').forEach(function(b){b.classList.toggle('on',b.dataset.v===S.source);b.setAttribute('aria-pressed',String(b.dataset.v===S.source));});
+  return true;
 }
 
 /* Step to the previous/next date on which the table actually changed, so the

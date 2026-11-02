@@ -10,7 +10,7 @@ Install Playwright in the development environment, then run `node tests/share-li
 
 `SITE_URL=https://rugbyarchive.github.io/` runs the same checks against deployment; otherwise they use the local checkout. Analytics and form requests are blocked. No forms are submitted. The suite includes deliberately failed data requests followed by recovery.
 
-Publication must pass this suite locally and against the deployed files when changing URL or recovery behaviour. Other existing release/mobile checks still live in the dated workspace folders and await consolidation.
+Publication must pass this suite locally and against the deployed files when changing URL or recovery behaviour. The three maintained mobile interaction suites are consolidated here; dated release folders retain historical evidence and one-off diagnostics.
 
 Run `node tests/accessibility.cjs` for form names, navigation/theme state, focus indicators, mobile keyboard dialog behaviour and reduced-motion rankings playback. Run locally and live for accessibility changes. These browser checks do not replace physical-device or assistive-technology testing.
 
@@ -18,4 +18,4 @@ Supporting-page tests compare every generated match-index entry with the archive
 verify counts with JavaScript disabled, and check current/legacy/numeric match links
 without submitting reports. Safe-HTML tests cover escaping and source URL protocols.
 
-The runner starts a temporary local HTTP server when SITE_URL is unset, so CSP, font and origin behaviour match deployment. Nine maintained suites include mobile meetings/opponents/charts, static discovery and a mocked security-policy check. Lint and formatting checks are required by tools/check-site.py. No test sends an actual correction report.
+The runner starts a temporary local HTTP server when SITE_URL is unset, so CSP, font and origin behaviour match deployment. Ten maintained suites include rankings links, mobile meetings/opponents/charts, static discovery and a mocked security-policy check. Lint and formatting checks are required by tools/check-site.py. No test sends an actual correction report.

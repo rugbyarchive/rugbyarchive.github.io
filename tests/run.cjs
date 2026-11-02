@@ -15,6 +15,7 @@ const path = require('node:path');
     for (const name of [
       'safe-html',
       'share-links',
+      'rankings-links',
       'accessibility',
       'supporting-pages',
       'security-policy',

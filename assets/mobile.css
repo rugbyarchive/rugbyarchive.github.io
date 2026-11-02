@@ -124,6 +124,9 @@
  .mobile-opponent dt,#opphead label,.mobile-match-content .drawer dt,
  .mobile-match-content .drawer h4{font-family:var(--mono);font-size:13px;line-height:1.4}
  .mobile-match-content .drawer{font-size:14px;line-height:1.5}
+ .hero-stats span,.card-label,.asat-label,.f>span,.f>label,.rule>span{
+   font-family:var(--mono);line-height:1.4;
+ }
  .ghostbtn,.chips button,.segbtns button,.themeswitch button,
  .mobile-group>summary,.tmextras>summary,.tmoptions>summary,.tmcontext>summary{
    font-family:var(--mono)!important;font-size:14px;line-height:1.4;
