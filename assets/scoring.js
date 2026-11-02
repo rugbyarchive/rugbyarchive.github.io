@@ -49,11 +49,7 @@ var MON3 = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep",
 
 var S = { target: SC.rows[SC.rows.length - 1][0], show: "all", team: "" };
 
-function esc(s) {
-  return String(s).replace(/[&<>"]/g, function (c) {
-    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
-  });
-}
+function esc(s) { return window.RUGBY_SAFE.escape(s); }
 function fmtDate(s) {
   return +s.slice(8, 10) + " " + MON3[+s.slice(5, 7) - 1] + " " + s.slice(0, 4);
 }

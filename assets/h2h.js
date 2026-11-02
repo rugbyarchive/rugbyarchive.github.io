@@ -155,11 +155,7 @@ function renderComparison(){
 }
 
 // ------------------------------------------------------------------ helpers
-function esc(s) {
-  return String(s).replace(/[&<>"]/g, function (c) {
-    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
-  });
-}
+function esc(s) { return window.RUGBY_SAFE.escape(s); }
 function fmtDate(s) {
   return +s.slice(8, 10) + " " + MON3[+s.slice(5, 7) - 1] + " " + s.slice(0, 4);
 }

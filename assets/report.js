@@ -1,16 +1,27 @@
-(function () {
+(async function () {
   "use strict";
   var form = document.getElementById('report-form'), loading = document.getElementById('report-loading');
   var status = document.getElementById('report-status'), send = document.getElementById('report-send');
-  var data = window.RUGBY_DATA, id = new URLSearchParams(location.search).get('match');
-  id = (window.RUGBY_MATCH_ID_ALIASES || {})[id] || id;
-  if (!data || !id) { loading.textContent = 'Open a match in the archive and choose “Report an error” to identify the fixture.'; var back=document.createElement('a');back.href='index.html';back.className='ghostbtn';back.textContent='Find a match in the archive';loading.appendChild(document.createElement('br'));loading.appendChild(back);return; }
-  var fields = {}; data.fields.forEach(function (key, i) { fields[key] = i; });
-  var matches = data.rows.filter(function (r) { return r[fields.match_id] === id; });
-  if (matches.length !== 1) { loading.textContent = 'This match could not be identified in the current archive. Please find it again in the match explorer.'; return; }
-  var row = matches[0], lookup = data.lookups;
-  function name(side) { return lookup.team_era && row[fields[side + '_as']] != null ? lookup.team_era[row[fields[side + '_as']]] : lookup.teams[row[fields[side]]]; }
-  var fixture = row[fields.date] + ' — ' + name('home') + ' ' + row[fields.home_score] + '–' + row[fields.away_score] + ' ' + name('away');
+  var data=window.RUGBY_PAGE_META, id=new URLSearchParams(location.search).get('match');
+  function recover(message){
+    loading.textContent=message;var back=document.createElement('a');back.href='index.html';back.className='ghostbtn';back.textContent='Find a match in the archive';loading.appendChild(document.createElement('br'));loading.appendChild(back);
+  }
+  function load(url){return new Promise(function(resolve,reject){var script=document.createElement('script');script.src=url;script.onload=resolve;script.onerror=reject;document.head.appendChild(script);});}
+  function bucket(key){var h=0;for(var i=0;i<key.length;i++)h=(Math.imul(h,31)+key.charCodeAt(i))>>>0;return h%64;}
+  async function find(key){window.RUGBY_REPORT_ROWS=null;await load(data.report_shards[bucket(key)]);return window.RUGBY_REPORT_ROWS && Object.prototype.hasOwnProperty.call(window.RUGBY_REPORT_ROWS,key)?window.RUGBY_REPORT_ROWS[key]:null;}
+  if(!id){recover('Open a match in the archive and choose “Report an error” to identify the fixture.');return;}
+  if(!data){recover('The match details could not load. Please refresh or find the match again.');return;}
+  var row;
+  try{
+    row=await find(id);
+    if(!row){
+      await load(data.legacy_url);
+      var alias=(window.RUGBY_MATCH_ID_ALIASES||{})[id]||(window.RUGBY_LEGACY_MATCH_IDS||{})[id];
+      if(typeof alias==='string'){id=alias;row=await find(id);}
+    }
+  }catch(error){recover('The match details could not load. Please refresh or find the match again.');return;}
+  if(!row){recover('This match could not be identified in the current archive. Please find it again.');return;}
+  var fixture=row[0]+' — '+row[1]+' '+row[2]+'–'+row[3]+' '+row[4];
   var matchUrl = new URL('index.html', location.href); matchUrl.hash = 'match=' + encodeURIComponent(id);
   document.getElementById('report-fixture').value = fixture;
   document.getElementById('report-id').value = id;

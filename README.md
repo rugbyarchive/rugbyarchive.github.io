@@ -1,10 +1,8 @@
 # Nuck's Rugby Archive
 
-A complete, unified database of every international rugby union match, from the
-first ever international on 27 March 1871 to the present day — presented as a
-public time capsule and what-if tool.
+A sourced, evolving archive of men's international rugby and selected touring fixtures, presented as a public history explorer and scoring comparison tool. Coverage is incomplete; published source and uncertainty notes describe known gaps.
 
-**11,256 matches · 616 teams · 1871-03-27 to 2026-09-06**
+**11,283 matches · 616 teams · latest recorded match 2026-10-31**
 
 ## The site
 
@@ -17,21 +15,22 @@ public time capsule and what-if tool.
 
 ## How it is built
 
-The single source of truth is a curated Excel workbook. A Python pipeline
-validates it, replays the World Rugby points-exchange ranking system over every
-match from 1871 using the same engine four times (official and legacy rules,
-with and without British & Irish Lions matches), and writes the JSON this site
-ships to the browser. There is no backend: the whole dataset loads with the
-page.
+The source is a curated Excel workbook. The release pipeline validates records,
+builds the archive reconstruction and preserves separately sourced official
+World Rugby snapshots. The interactive tools use static JavaScript datasets.
+About uses small generated metadata; Report loads only the relevant match-index
+shard, with legacy aliases loaded only when needed. There is no application backend.
 
-Rankings are a blind replay, not a copy of the published table. As an
-independent check, at each of the six most recent Rugby World Cup final dates
-the replay puts the correct side top under official rules.
+`python tools/build-page-data.py` regenerates supporting-page payloads and fallback
+coverage text from `data/archive-data.js`. The active release pipeline runs this
+before versioning assets. Do not hand-edit generated payloads.
 
 ## Accuracy
 
-Every figure on every page is cross-checked against an independent Python
-recomputation before release. Known data gaps and open audit items are
-documented rather than hidden — see the coverage notes on each page.
+Release checks cover record identity, exclusions, dataset consistency and the
+affected browser behaviour. They are not a claim that every historical field has
+been independently corroborated. Source quality and unresolved gaps remain visible.
 
-Built 2026-09-08 at 14:16:37 from `Historical Rugby Results.xlsx`.
+Run `npm test` after installing development dependencies; see `tests/README.md`.
+
+Coverage generated from the published archive. See the site for source notes and limitations.

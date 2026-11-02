@@ -341,11 +341,7 @@ function scoreline(r, mineFirst) {
   var h = homeName(r), a = awayName(r);
   return h + " " + r[F.home_score] + "–" + r[F.away_score] + " " + a;
 }
-function esc(s) {
-  return String(s).replace(/[&<>"]/g, function (c) {
-    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
-  });
-}
+function esc(s) { return window.RUGBY_SAFE.escape(s); }
 
 // ----------------------------------------------------------------- render
 /* THE ROW IS ALWAYS TWO LINES.

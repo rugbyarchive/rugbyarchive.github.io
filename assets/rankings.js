@@ -172,11 +172,7 @@ function gridCols() {
   return cols().map(function(c){return c.key === 'team' ? 'minmax(150px,1fr)' : c.key === 'last' ? '112px' : c.key === 'impact' ? '112px' : '76px';}).join(' ');
 }
 
-function esc(s) {
-  return String(s).replace(/[&<>"]/g, function (c) {
-    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
-  });
-}
+function esc(s) { return window.RUGBY_SAFE.escape(s); }
 
 function movement(v) {
   if (v === null) return '<span class="mv new">new</span>';
@@ -470,7 +466,7 @@ function milestoneTableKey(snapshot){
 function syncTimeline(index){
   if(selectedMilestone&&(selectedMilestone.target!==S.day||selectedMilestone.source!==S.source))selectedMilestone=null;
   var milestone=JUMPS.find(function(j){return j[1]===(selectedMilestone?selectedMilestone.date:dayToISO(S.day));}),note=document.getElementById('milestone-note');
-  if(note){note.hidden=!milestone;note.innerHTML=milestone?esc(milestone[1]+' · '+(milestone[2]||milestone[0]))+(milestone[3]?' <a href="'+esc(milestone[3])+'" target="_blank" rel="noopener noreferrer">Source ↗</a>':''):'';}
+  if(note){note.hidden=!milestone;note.innerHTML=milestone?esc(milestone[1]+' · '+(milestone[2]||milestone[0]))+(window.RUGBY_SAFE.sourceURL(milestone[3])?' <a href="'+esc(window.RUGBY_SAFE.sourceURL(milestone[3]))+'" target="_blank" rel="noopener noreferrer">Source ↗</a>':''):'';}
   if(note && milestone && S.source==='world'){
     note.innerHTML+='<br><strong>Match: '+esc(milestone[1])+'. Official snapshot: '+esc(dayToISO(S.day))+'.</strong> '+(selectedMilestone&&selectedMilestone.target>isoToDay(milestone[1])?'Showing the next saved changed table after the match. Changes compare with the saved match-date table and can include other matches.':'No later changed snapshot is available; this table may not reflect the result.');
   }

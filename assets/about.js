@@ -1,6 +1,6 @@
 (function () {
   "use strict";
-  var data = window.RUGBY_DATA;
+  var data = window.RUGBY_PAGE_META;
   if (!data || !data.meta) return;
   document.querySelectorAll('[data-stat]').forEach(function (el) {
     var n = data.meta[el.dataset.stat];
