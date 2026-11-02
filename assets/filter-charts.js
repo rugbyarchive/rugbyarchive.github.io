@@ -3,7 +3,7 @@
   'use strict';
   let data, mode='matches', metric='count', grouping=10, rankSource='archive', selected=null, bins=[];
   const $=id=>document.getElementById(id);
-  const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const escape=window.RUGBY_SAFE.escape;
   const fmt=n=>n.toLocaleString('en-GB');
   const toggle=document.createElement('div');
   toggle.className='segbtns sm result-view';toggle.setAttribute('role','group');toggle.setAttribute('aria-label','Results view');

@@ -1,0 +1,50 @@
+{
+  "index.html": {
+    "sha256": "187ef98a100077f85d5c09284732a28b538ab5aebf9966b809137d9203cf26e0",
+    "lastmod": "2026-11-02"
+  },
+  "about.html": {
+    "sha256": "c1da8b8f27fb8f3e04cc832b96f670f1d7f0a7dcc6ad9afab9a5bcbd43204659",
+    "lastmod": "2026-11-02"
+  },
+  "head-to-head.html": {
+    "sha256": "da46c8943f12c867d92ff8a110573c3384a6b0a57c5f9631edb92d84e02e0c38",
+    "lastmod": "2026-11-02"
+  },
+  "rankings.html": {
+    "sha256": "cc4e276aa2ad366dc2663a76189cfa85e2d7763391bd9eb3b065c6cbcb15ad73",
+    "lastmod": "2026-11-02"
+  },
+  "scoring.html": {
+    "sha256": "214f050d393100dd59bb17735050f6a789e735242e6ab368669cafedaaeb3dd9",
+    "lastmod": "2026-11-02"
+  },
+  "discover.html": {
+    "sha256": "4118ab5677739e5144ddbc291d278bc5f921299bce8a7e7b3d1b162ce52910e8",
+    "lastmod": "2026-11-02"
+  },
+  "team/fiji.html": {
+    "sha256": "cd7d8781b9d41701a13658371cee800ad32a080bb992bb192642731b13e0e586",
+    "lastmod": "2026-11-02"
+  },
+  "team/japan.html": {
+    "sha256": "fe0c26070eca7550378a278b0fa772a5e6d5594012603d8133263b15230af740",
+    "lastmod": "2026-11-02"
+  },
+  "team/south-africa.html": {
+    "sha256": "8c5f2e29499ba5bc0ecd9dfaff3a64b2668ae526ca98e80324efcb4bef9b28e7",
+    "lastmod": "2026-11-02"
+  },
+  "rivalry/japan-fiji.html": {
+    "sha256": "1edc741f232e0512fc4712c68599f197315492b0cad7f1de3e32dfabd1b89acd",
+    "lastmod": "2026-11-02"
+  },
+  "rivalry/france-new-zealand.html": {
+    "sha256": "0ff078484969026ec341f31d127b1aed1e38a023654bc1342bd52e238a68374c",
+    "lastmod": "2026-11-02"
+  },
+  "rivalry/australia-south-africa.html": {
+    "sha256": "e582f99cef04b3d93d584e249a70fcb68d53786d9b3a4066f9614e4635557534",
+    "lastmod": "2026-11-02"
+  }
+}

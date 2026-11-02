@@ -1,7 +1,7 @@
 (function () {
   'use strict';
   let source='archive', group='bands';
-  const esc=x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const esc=window.RUGBY_SAFE.escape;
   const count=n=>n+' '+(n===1?'match':'matches');
   function switches(attr,options,current,label){return '<div class="insight-switch" role="group" aria-label="'+label+'">'+options.map(([v,t])=>'<button type="button" '+attr+'="'+v+'" aria-pressed="'+(v===current)+'">'+t+'</button>').join('')+'</div>';}
   window.RugbyInsights={render:function(D,view,team,analysis,filter){

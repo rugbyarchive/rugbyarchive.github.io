@@ -1418,7 +1418,7 @@ html[data-theme='light'] .site-brand a{background:#0b1117;border-radius:6px;widt
 /* Self-hosted display lettering keeps the arcade identity consistent on every device. */
 @font-face{
   font-family:'Pixelify Sans';
-  src:url('fonts/pixelify-sans.ttf') format('truetype');
+  src:url('fonts/pixelify-sans.woff2') format('woff2');
   font-weight:400 700;
   font-style:normal;
   font-display:optional;
@@ -1542,3 +1542,5 @@ html body :is(a,button,input,select,textarea,summary):focus-visible{
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 }
+/* Light-theme helper copy must remain readable on white panels. */
+html[data-theme="light"] :is(#m-span,#chart-note,.tm .lastp){color:var(--muted)}

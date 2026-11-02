@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' https://formspree.io https://cloudflareinsights.com https://*.cloudflareinsights.com; object-src 'none'; base-uri 'self'; form-action https://formspree.io">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Re-score historical rugby matches under any scoring system the game has used. 15 results change winner under modern values.">
 <meta name="theme-color" content="#1f3864">
@@ -10,16 +12,17 @@
 <meta property="og:title" content="Nuck's Rugby Archive — Score Normalisation">
 <meta property="og:description" content="Re-score historical rugby matches under any scoring system the game has used. 15 results change winner under modern values.">
 <meta name="twitter:card" content="summary_large_image">
-<meta property="og:image" content="https://rugbyarchive.github.io/assets/nucks-rugby-archive.png">
+<meta property="og:image" content="https://rugbyarchive.github.io/assets/nucks-rugby-archive-display.webp">
 <meta property="og:image:alt" content="Nuck's Rugby Archive — blue pixel-style wordmark">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231f3864'/%3E%3Cellipse cx='16' cy='16' rx='11' ry='7' transform='rotate(-35 16 16)' fill='none' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M11 21 L21 11' stroke='%23fff' stroke-width='2'/%3E%3Cpath d='M13.5 16.5 L15.5 18.5 M16.5 13.5 L18.5 15.5' stroke='%23fff' stroke-width='1.6'/%3E%3C/svg%3E">
 <title>Nuck's Rugby Archive — Score Normalisation</title>
-<link rel="preload" href="assets/fonts/pixelify-sans.ttf" as="font" type="font/ttf" crossorigin>
-<link rel="stylesheet" href="assets/styles.css?v=52ade3c12380f628">
+<link rel="preload" href="assets/fonts/pixelify-sans.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/styles.css?v=5deca337830d3f2f">
 <!-- loaded here, not at the foot, so the theme is set before the first paint -->
-<script src="assets/theme.js?v=049af0b15daafa37"></script>
+<script src="assets/theme.js?v=17ddb5f92c9146c0"></script>
 <link rel="canonical" href="https://rugbyarchive.github.io/scoring.html">
 <link rel="stylesheet" href="assets/mobile.css?v=e6d806f8ce89841a">
+<script src="assets/safe-html.js?v=8fe16e3a13ddc054" defer></script>
 </head>
 <body>
 
@@ -122,12 +125,11 @@
 
 </main>
 
-<script src="data/archive-data.js?v=04071ec4c1412eef" onerror="window.__dataFailed=true"></script>
-<script src="assets/link-state.js?v=116ba30a4b46a8ed"></script>
-<script src="assets/safe-html.js?v=8fe16e3a13ddc054"></script>
-<script src="assets/scoring.js?v=fcd82d43057b2ce3"></script>
-<script src="assets/analytics.js?v=f050161b9d590487" defer></script>
-<script src="assets/mobile.js?v=1a51b5b8076cd52a" defer></script>
+<script src="data/archive-data.js?v=add93f9b28ca53a8" defer></script>
+<script src="assets/link-state.js?v=116ba30a4b46a8ed" defer></script>
+<script src="assets/scoring.js?v=7fb0d3c2e6b759f6" defer></script>
+<script src="assets/analytics.js?v=a8221e265d10dc6f" defer></script>
+<script src="assets/mobile.js?v=e94d9be2a5682242" defer></script>
 <script src="assets/recovery.js?v=c9f55a84d2cc71f1" defer></script>
 </body>
 </html>

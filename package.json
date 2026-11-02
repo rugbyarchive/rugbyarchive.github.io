@@ -2,9 +2,13 @@
   "name": "nucks-rugby-archive-checks",
   "private": true,
   "scripts": {
-    "test": "node tests/run.cjs"
+    "test": "node tests/run.cjs",
+    "lint": "eslint assets tests",
+    "format:check": "prettier --check \"tests/*.cjs\" \"docs/*.md\""
   },
   "devDependencies": {
-    "playwright": "1.62.1"
+    "playwright": "1.62.1",
+    "eslint": "9.39.1",
+    "prettier": "3.6.2"
   }
 }
