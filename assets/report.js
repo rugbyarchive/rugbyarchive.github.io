@@ -4,7 +4,7 @@
   var status = document.getElementById('report-status'), send = document.getElementById('report-send');
   var data = window.RUGBY_DATA, id = new URLSearchParams(location.search).get('match');
   id = (window.RUGBY_MATCH_ID_ALIASES || {})[id] || id;
-  if (!data || !id) { loading.textContent = 'Open a match in the archive and choose “Report an error” to identify the fixture.'; return; }
+  if (!data || !id) { loading.textContent = 'Open a match in the archive and choose “Report an error” to identify the fixture.'; var back=document.createElement('a');back.href='index.html';back.className='ghostbtn';back.textContent='Find a match in the archive';loading.appendChild(document.createElement('br'));loading.appendChild(back);return; }
   var fields = {}; data.fields.forEach(function (key, i) { fields[key] = i; });
   var matches = data.rows.filter(function (r) { return r[fields.match_id] === id; });
   if (matches.length !== 1) { loading.textContent = 'This match could not be identified in the current archive. Please find it again in the match explorer.'; return; }

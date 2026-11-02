@@ -44,12 +44,9 @@
 </div>
 
 <div id="dataerror" class="dataerror" hidden>
-  <h2>I can't find the data file.</h2>
-  <p>This page reads <code>site\data\archive-data.js</code>, written for it by
-     the pipeline.</p>
-  <p><strong>To fix it:</strong> go up to the Rugby-Archive folder, double-click
-     <strong>Update Archive</strong>, wait for FINISHED, then open this page
-     again.</p>
+  <h2>The archive data could not load.</h2>
+  <p>Please refresh, or try again later. Your link will be kept.</p>
+  <button type="button" class="ghostbtn" data-retry>Try again</button>
 </div>
 
 <div id="nodata" class="dataerror" hidden>
@@ -126,8 +123,10 @@
 </main>
 
 <script src="data/archive-data.js?v=04071ec4c1412eef" onerror="window.__dataFailed=true"></script>
-<script src="assets/scoring.js?v=99ca920c30e753e3"></script>
+<script src="assets/link-state.js?v=116ba30a4b46a8ed"></script>
+<script src="assets/scoring.js?v=f28a3aabc94df524"></script>
 <script src="assets/analytics.js?v=f050161b9d590487" defer></script>
-<script src="assets/mobile.js?v=1ae74b1b78d87cb2" defer></script>
+<script src="assets/mobile.js?v=1a51b5b8076cd52a" defer></script>
+<script src="assets/recovery.js?v=c9f55a84d2cc71f1" defer></script>
 </body>
 </html>

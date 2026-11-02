@@ -52,7 +52,7 @@
       function closeMatch(clearLink){
         if(!panel.open)return;
         panel.close();document.body.classList.remove('mobile-modal-open');
-        if(clearLink&&activeRow!==null){var linked=window.__ARCHIVE.linkedRow();if(linked===activeRow){var params=new URLSearchParams(location.hash.slice(1));params.delete('match');history.replaceState(null,'',location.pathname+location.search+(params.size?'#'+params.toString():''));}}
+        if(clearLink&&activeRow!==null){var linked=window.__ARCHIVE.linkedRow();if(linked===activeRow){var params=new URLSearchParams(location.hash.slice(1));params.delete('match');history.replaceState(null,'',location.pathname+location.search+(params.toString()?'#'+params.toString():''));}}
         if(position){$('#tablewrap').scrollTop=position.table;window.scrollTo(position.x,position.y);var trigger=$('#tablebody [data-exp="'+activeRow+'"]');if(trigger)trigger.focus({preventScroll:true});}
         content.replaceChildren();activeRow=null;position=null;
       }

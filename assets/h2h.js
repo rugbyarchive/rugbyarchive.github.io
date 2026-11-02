@@ -851,25 +851,19 @@ function writeHash() {
   if (S.b) p.push("b=" + encodeURIComponent(S.b));
   if (S.basis === "restated") p.push("era=" + S.era);
   var h = p.length ? "#" + p.join("&") : "";
-  if (location.hash !== h) {
+  if (location.hash !== h || (!h && location.href.endsWith("#"))) {
     history.replaceState(null, "", location.pathname + location.search + h);
   }
 }
 
 function readHash() {
-  var h = location.hash.replace(/^#/, "");
-  S.mode="meetings"; S.sameDates=false; S.testsOnly=true; S.meetFrom=S.meetTo=S.aFrom=S.aTo=S.bFrom=S.bTo="";
-  if (!h) return;
-  h.split("&").forEach(function (kv) {
-    var p = kv.split("="), k = p[0], v = decodeURIComponent(p[1] || "");
-    if(k==="mode"&&v==="compare")S.mode=v;
-    else if(["meetFrom","meetTo","aFrom","aTo","bFrom","bTo"].includes(k)&&/^\d{4}-\d{2}-\d{2}$/.test(v))S[k]=v;
-    else if(k==="sameDates")S.sameDates=v==="1";
-    else if(k==="testsOnly")S.testsOnly=v!=="0";
-    else if (k === "a") S.a = v;
-    else if (k === "b") S.b = v;
-    else if (k === "era") { S.basis = "restated"; S.era = +v; }
-  });
+  var L=window.RUGBY_LINK,schema={a:L.team(D),b:L.team(D),mode:L.choice(['meetings','compare']),sameDates:L.choice(['0','1']),testsOnly:L.choice(['0','1']),era:function(v){return SC.rows.some(function(r){return String(r[0])===v;})?+v:undefined;}};
+  ['meetFrom','meetTo','aFrom','aTo','bFrom','bTo'].forEach(function(k){schema[k]=L.date;});
+  var patch=L.parse(location.hash,schema,[['meetFrom','meetTo'],['aFrom','aTo'],['bFrom','bTo']]);
+  if(patch===null)return false;
+  Object.assign(S,{a:'',b:'',basis:'played',mode:'meetings',sameDates:false,testsOnly:true,meetFrom:'',meetTo:'',aFrom:'',aTo:'',bFrom:'',bTo:''},patch);
+  S.sameDates=patch.sameDates==='1';S.testsOnly=patch.testsOnly!=='0';if(patch.era!==undefined)S.basis='restated';
+  return true;
 }
 
 function syncControls() {
@@ -944,7 +938,7 @@ function init() {
     }
   });
   window.addEventListener("hashchange", function () {
-    S.a = S.b = ""; readHash(); syncControls(); refresh();
+    readHash(); syncControls(); refresh();
   });
 
   document.getElementById('opphead').addEventListener('click',function(e){

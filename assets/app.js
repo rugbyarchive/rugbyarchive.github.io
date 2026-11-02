@@ -79,6 +79,8 @@ var S = {
   sort: "date", dir: -1
 };
 
+var LINK_DEFAULTS = Object.assign({}, S);
+
 /* match_class, written by the pipeline from data\team_classification.csv.
    0 both sides national - a full international
    1 exactly one side national - a Lions Test, a match against an A or XV side
@@ -2120,6 +2122,7 @@ function writeHash() {
   HASH_KEYS.forEach(function (k) {
     var v = S[k];
     if (v === "" || v === null || v === "any") return;
+    if (k === "rankSource" && v === "archive") return;
     if (k === "sort" && v === "date") return;
     if (k === "dir" && v === -1) return;
     parts.push(k + "=" + encodeURIComponent(v));
@@ -2132,7 +2135,7 @@ function writeHash() {
   if (m !== null) parts.push("match=" + encodeURIComponent(m));
   writingHash = true;
   var h = parts.length ? "#" + parts.join("&") : "";
-  if (location.hash !== h) {
+  if (location.hash !== h || (!h && location.href.endsWith("#"))) {
     history.replaceState(null, "", location.pathname + location.search + h);
   }
   writingHash = false;
@@ -2142,16 +2145,20 @@ function writeHash() {
    hashchange the hash may no longer say what the reader typed - see the
    listener below. */
 function readHash(raw) {
-  var h = (raw === undefined ? location.hash : raw).replace(/^#/, "");
-  if (!h) return;
-  h.split("&").forEach(function (p) {
-    var kv = p.split("="), k = kv[0], v = decodeURIComponent(kv[1] || "");
-    if (k === "dows") { S.dows = v ? v.split(",").map(Number) : []; return; }
-    if (HASH_KEYS.indexOf(k) === -1) return;
-    if (["yearFrom", "yearTo", "marginMin", "marginMax", "oppRankMin",
-         "oppRankMax", "dir"].indexOf(k) !== -1) S[k] = v === "" ? null : +v;
-    else S[k] = v;
-  });
+  var L=window.RUGBY_LINK, schema={team:L.team(D),opp:L.team(D),dateFrom:L.date,dateTo:L.date,
+    country:L.choice([''].concat(LK.country)),city:L.choice([''].concat(LK.city)),venue:L.choice([''].concat(LK.stadium)),comp:L.choice([''].concat(LK.competition)),
+    side:L.choice(['any','home','away','neutral']),result:L.choice(['any','W','D','L']),rankSource:L.choice(['archive','world']),
+    sort:L.choice(Object.keys(SORTERS).concat(Object.keys(TEXT_SORT),['result'])),dir:function(v){return v==='1'||v==='-1'?+v:undefined;},
+    dows:function(v){if(!v)return [];var a=v.split(',');return a.every(function(n){return /^[0-6]$/.test(n);})?Array.from(new Set(a.map(Number))):undefined;}
+  };
+  ['wc','elig','full','neutralFilter','breakdownFilter'].forEach(function(k){schema[k]=L.choice(['any','0','1']);});
+  schema.mclass=L.choice(['any','0','1','2','3','4']);
+  ['yearFrom','yearTo'].forEach(function(k){schema[k]=L.integer(1,9999);});
+  ['marginMin','marginMax'].forEach(function(k){schema[k]=L.integer(0,100000);});
+  ['oppRankMin','oppRankMax'].forEach(function(k){schema[k]=L.integer(1,TEAMS.length);});
+  var patch=L.parse(raw===undefined?location.hash:raw,schema,[['dateFrom','dateTo'],['yearFrom','yearTo'],['marginMin','marginMax'],['oppRankMin','oppRankMax']]);
+  if(patch===null)return false;
+  Object.assign(S,LINK_DEFAULTS,patch);return true;
 }
 
 window.addEventListener("hashchange", function () {
@@ -2165,8 +2172,7 @@ window.addEventListener("hashchange", function () {
      hash was introduced; nothing caught it because a link opened in a NEW tab
      is a load, not a hashchange, and that is how it was always tested. */
   var raw = location.hash;
-  resetAll();
-  readHash(raw);
+  if (!readHash(raw)) { writeHash(); return; }
   syncControls();
   refresh();
   openLinkedMatch(raw);

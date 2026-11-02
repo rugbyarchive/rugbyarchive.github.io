@@ -342,19 +342,14 @@ function writeHash() {
   if (S.show !== "all") p.push("show=" + S.show);
   if (S.team) p.push("team=" + encodeURIComponent(S.team));
   var h = p.length ? "#" + p.join("&") : "";
-  if (location.hash !== h) {
+  if (location.hash !== h || (!h && location.href.endsWith("#"))) {
     history.replaceState(null, "", location.pathname + location.search + h);
   }
 }
 function readHash() {
-  var h = location.hash.replace(/^#/, "");
-  if (!h) return;
-  h.split("&").forEach(function (kv) {
-    var p = kv.split("="), k = p[0], v = decodeURIComponent(p[1] || "");
-    if (k === "target") S.target = +v;
-    else if (k === "show") S.show = v;
-    else if (k === "team") S.team = v;
-  });
+  var L=window.RUGBY_LINK,patch=L.parse(location.hash,{team:L.team(D),show:L.choice(['all','flip','bad']),target:function(v){return SC.rows.some(function(r){return String(r[0])===v;})?+v:undefined;}});
+  if(patch===null)return false;
+  Object.assign(S,{target:SC.rows[SC.rows.length-1][0],show:'all',team:''},patch);return true;
 }
 
 function init() {
@@ -389,6 +384,10 @@ function init() {
       return '<option value="' + esc(t) + '">' + esc(t) + "</option>";
     }).join("");
 
+  window.addEventListener('hashchange',function(){
+    readHash();document.getElementById('f-target').value=S.target;document.getElementById('f-team').value=S.team;
+    document.querySelectorAll('#f-show [data-v]').forEach(function(b){b.classList.toggle('on',b.dataset.v===S.show);});renderReference();build();
+  });
   readHash();
   document.getElementById("f-target").value = S.target;
   document.getElementById("f-team").value = S.team;
