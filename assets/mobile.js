@@ -75,11 +75,11 @@
     var rivalry=$('#rivalry');
     if(rivalry){
       var links=add(rivalry,make('div','mobile-jumps'));rivalry.prepend(links);
-      var meetings=$('#meetwrap');var go=add(links,button('View meetings',function(){jump($('#meethead'));}));
+      var meetings=$('#meetwrap');var go=add(links,button('View meetings',function(){jump(meetings);}));
       function meetingCount(){go.textContent='View '+$('#meetcount').textContent+' meetings';}
       var mo=new MutationObserver(meetingCount);mo.observe($('#meetcount'),{childList:true});undo.push(function(){mo.disconnect();});meetingCount();
       var back=add(rivalry,button('Back to comparison',function(){jump($('.h2h .pickbar'));}));$('#meethead').before(back);
-      var hint=add(rivalry,make('p','mobile-table-hint','Swipe the table sideways for venue and competition details.'));$('#meethead').before(hint);
+      var hint=add(rivalry,make('p','mobile-table-hint','Open a match for venue, statistics and sources. Home and away follow the listed fixture.'));$('#meethead').before(hint);
       var chart=$('#chart');if(chart)on(chart,'click',function(e){if(chart.onmousemove)chart.onmousemove(e);});
       if($('#chart-note'))add($('#chart-note'),make('span','',' Tap a point to inspect its match.'));
     }

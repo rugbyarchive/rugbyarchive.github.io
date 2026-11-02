@@ -601,6 +601,7 @@ var MCOLS = [
 var MGRID = "104px minmax(100px,1fr) 92px minmax(100px,1fr) 46px 56px " +
             "minmax(120px,1.4fr) minmax(110px,1.2fr) 82px";
 var meetList = [], meetSt = null, meetAi = -1;
+var meetRowHeight = matchMedia('(max-width:700px)').matches ? 208 : 30;
 
 function renderMeetings(list, ai, st) {
   meetList = list; meetSt = st; meetAi = ai;
@@ -611,20 +612,40 @@ function renderMeetings(list, ai, st) {
     return '<div class="' + c.c + '">' + c.l + "</div>";
   }).join("");
   document.getElementById("meetspacer").style.height =
-    (list.length * 30) + "px";
+    (list.length * meetRowHeight) + "px";
   paintMeetings();
 }
 
 function paintMeetings() {
   var wrap = document.getElementById("meetwrap");
   var body = document.getElementById("meetbody");
-  var first = Math.max(0, Math.floor(wrap.scrollTop / 30) - 6);
+  var phone = matchMedia('(max-width:700px)').matches;
+  var nextHeight = phone ? 208 : 30;
+  if (nextHeight !== meetRowHeight) {
+    var position = wrap.scrollTop / meetRowHeight;
+    meetRowHeight = nextHeight;
+    document.getElementById('meetspacer').style.height = (meetList.length * meetRowHeight) + 'px';
+    wrap.scrollTop = position * meetRowHeight;
+  }
+  var first = Math.max(0, Math.floor(wrap.scrollTop / meetRowHeight) - 6);
   var last = Math.min(meetList.length,
-                      first + Math.ceil(wrap.clientHeight / 30) + 12);
+                      first + Math.ceil(wrap.clientHeight / meetRowHeight) + 12);
   var out = "";
   for (var k = first; k < last; k++) {
     var i = meetList[k], r = ROWS[i], s = meetSt.seq[k];
     var sc = scores(i);
+    if (phone) {
+      var detailLabel = 'Full match details: ' + homeName(r) + ' v ' + awayName(r) + ', ' + fmtDate(r[F.date]);
+      var basis = sc[2] ? 'Restated score · details show the original record' :
+        (S.basis === 'restated' ? 'Original score · no complete scoring breakdown' : 'Score as played');
+      out += '<article class="mobile-meeting" data-match-id="'+esc(r[F.match_id])+'">' +
+        '<div class="date">'+fmtDate(r[F.date])+'</div>' +
+        '<div class="mobile-meeting-side"><span><small>Home</small>'+esc(homeName(r))+'</span><b>'+sc[0]+'</b></div>' +
+        '<div class="mobile-meeting-side"><span><small>Away</small>'+esc(awayName(r))+'</span><b>'+sc[1]+'</b></div>' +
+        '<p class="mobile-meeting-basis">'+basis+'</p>' +
+        '<a class="ghostbtn" href="index.html#match='+encodeURIComponent(r[F.match_id])+'" aria-label="'+esc(detailLabel)+'">Full match details →</a></article>';
+      continue;
+    }
     var venue = r[F.stadium] !== null ? LK.stadium[r[F.stadium]]
               : (r[F.city] !== null ? LK.city[r[F.city]]
               : (r[F.country] !== null ? LK.country[r[F.country]] : "—"));
@@ -645,7 +666,7 @@ function paintMeetings() {
         " / " + (r[F.away_rank_before] === null ? "–" : r[F.away_rank_before]) +
       "</div></div>";
   }
-  body.style.transform = "translateY(" + (first * 30) + "px)";
+  body.style.transform = "translateY(" + (first * meetRowHeight) + "px)";
   body.innerHTML = out;
 }
 
@@ -872,6 +893,7 @@ function init() {
   document.getElementById("meetwrap").addEventListener("scroll", paintMeetings,
                                                        { passive: true });
   window.addEventListener("resize", function () {
+    paintMeetings();
     if (!document.getElementById("rivalry").hidden && S.a && S.b) {
       drawChart(analyse(meetings(teamIndexOf(S.a), teamIndexOf(S.b)), teamIndexOf(S.a)),
                 S.a, S.b);
