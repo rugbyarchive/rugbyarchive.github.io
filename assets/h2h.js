@@ -672,6 +672,7 @@ function paintMeetings() {
 
 // ------------------------------------------------------- all-opponents view
 var oppRows = [], oppSort=1, oppDirection=-1;
+var opponentPhone = matchMedia('(max-width:700px)').matches;
 function opponentSortValue(x,column){
   return [x.opp,x.st.played,x.st.won,x.st.drawn,x.st.lost,x.st.played?x.st.won/x.st.played:0,x.st.pf,x.st.pa,x.first,x.last][column];
 }
@@ -712,6 +713,7 @@ function renderAllOpponents() {
   document.getElementById("oppcount").textContent = num(view.length);
   var grid = "minmax(140px,1.6fr) 58px 52px 52px 52px 66px 74px 74px 106px 106px";
   var head = document.getElementById("opphead");
+  opponentPhone = matchMedia('(max-width:700px)').matches;
   head.style.gridTemplateColumns = grid;
   head.innerHTML = ["Opponent", "P", "W", "D", "L", "Win%", "For", "Against",
                     "First met", "Last met"]
@@ -719,7 +721,18 @@ function renderAllOpponents() {
       var active=i===oppSort,dir=active?(oppDirection===1?'ascending':'descending'):'not sorted';
       return '<button type="button" data-opp-sort="'+i+'" class="'+(i>0&&i<8?'num':'')+(active?' sorted':'')+'" aria-label="Sort by '+l+'; '+dir+'" title="Sort by '+l+'">'+l+(active?(oppDirection===1?' ▲':' ▼'):'')+'</button>';
     }).join("");
+  if (opponentPhone) {
+    head.innerHTML = '<label>Sort opponents<select id="mobile-opp-sort">'+
+      ['Name','Matches played','Wins','Draws','Losses','Win percentage','Points for','Points against','First meeting','Latest meeting'].map(function(label,i){return '<option value="'+i+'"'+(i===oppSort?' selected':'')+'>'+label+'</option>';}).join('')+
+      '</select></label><label>Order<select id="mobile-opp-order"><option value="-1"'+(oppDirection===-1?' selected':'')+'>Descending</option><option value="1"'+(oppDirection===1?' selected':'')+'>Ascending</option></select></label>';
+  }
   var out = view.map(function (x) {
+    if (opponentPhone) {
+      return '<article class="mobile-opponent" data-opponent="'+esc(x.opp)+'"><h3>'+esc(x.opp)+'</h3>'+
+        '<dl>'+[['Played',num(x.st.played)],['Wins',num(x.st.won)],['Draws',num(x.st.drawn)],['Losses',num(x.st.lost)],['Win rate',pct(x.st.won,x.st.played)],['Points for',num(x.st.pf)],['Points against',num(x.st.pa)]].map(function(v){return '<div><dt>'+v[0]+'</dt><dd>'+v[1]+'</dd></div>';}).join('')+'</dl>'+
+        '<p>First meeting: '+fmtDate(x.first)+'<br>Latest meeting: '+fmtDate(x.last)+'</p>'+
+        '<a class="ghostbtn" href="#a='+encodeURIComponent(S.a)+'&b='+encodeURIComponent(x.opp)+'" aria-label="View '+esc(S.a)+' versus '+esc(x.opp)+'">View rivalry →</a></article>';
+    }
     return '<div class="trow" style="grid-template-columns:' + grid + '">' +
       '<div class="teamcell"><a href="#a=' + encodeURIComponent(S.a) +
         "&b=" + encodeURIComponent(x.opp) + '">' + esc(x.opp) + "</a></div>" +
@@ -736,6 +749,7 @@ function renderAllOpponents() {
   document.getElementById("oppspacer").style.height = "0px";
   document.getElementById("oppbody").style.transform = "none";
   document.getElementById("oppbody").innerHTML = out;
+  if (opponentPhone && !view.length) document.getElementById('oppbody').innerHTML = '<p class="mobile-opponent-empty" role="status">No opponents match your search. Try another name or clear the search.</p>';
   writeHash();
 }
 
@@ -894,6 +908,7 @@ function init() {
                                                        { passive: true });
   window.addEventListener("resize", function () {
     paintMeetings();
+    if (opponentPhone !== matchMedia('(max-width:700px)').matches && S.a && !S.b) renderAllOpponents();
     if (!document.getElementById("rivalry").hidden && S.a && S.b) {
       drawChart(analyse(meetings(teamIndexOf(S.a), teamIndexOf(S.b)), teamIndexOf(S.a)),
                 S.a, S.b);
@@ -909,6 +924,14 @@ function init() {
     oppDirection=column===oppSort?-oppDirection:(column===0||column>=8?1:-1);oppSort=column;
     renderAllOpponents();document.getElementById('oppwrap').scrollTop=0;
     document.querySelector('[data-opp-sort="'+column+'"]').focus();
+  });
+  document.getElementById('opphead').addEventListener('change',function(e){
+    var id=e.target.id;
+    if(id==='mobile-opp-sort') {oppSort=+e.target.value;oppDirection=oppSort===0||oppSort>=8?1:-1;}
+    else if(id==='mobile-opp-order')oppDirection=+e.target.value;
+    else return;
+    renderAllOpponents();document.getElementById('oppwrap').scrollTop=0;
+    document.getElementById(id).focus({preventScroll:true});
   });
   document.getElementById('split-comp').addEventListener('click',function(e){
     var button=e.target.closest('.competition-toggle');if(!button)return;
