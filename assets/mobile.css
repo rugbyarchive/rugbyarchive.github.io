@@ -1,5 +1,13 @@
 /* Deliberately isolated from all desktop styling. */
 @media(max-width:700px){
+ #chartbox #tip{display:none}
+ #mobile-chart-inspector{padding:14px;border:1px solid var(--line);margin:12px 0;background:var(--panel)}
+ #mobile-chart-inspector label{display:flex;flex-direction:column;gap:8px}
+ #mobile-chart-match{width:100%;min-width:0;font-size:16px}
+ .mobile-chart-buttons{display:flex;gap:8px;margin:12px 0}
+ .mobile-chart-buttons button{flex:1;min-height:44px}
+ .mobile-chart-readout{font:14px/1.6 var(--mono);overflow-wrap:anywhere}
+ .mobile-chart-readout a{display:flex;justify-content:center;align-items:center;min-height:44px;text-decoration:none}
  .h2h #allopp{overflow-x:clip}
  .h2h #opphead{display:grid;min-width:0;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)!important;gap:10px;padding:10px 14px;height:auto}
  #opphead label{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--muted)}

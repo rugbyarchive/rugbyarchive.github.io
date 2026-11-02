@@ -276,6 +276,11 @@ function analyse(list, ai) {
 function drawChart(st, aName, bName) {
   var svg = document.getElementById("chart");
   var box = document.getElementById("chartbox");
+  var oldInspector = document.getElementById('mobile-chart-inspector');
+  var selectedMatch = oldInspector && oldInspector.dataset.match;
+  if (oldInspector) oldInspector.remove();
+  svg.onclick = null;
+  document.getElementById('tip').hidden = true;
   var W = Math.max(320, box.clientWidth), H = 210;
   var padL = 34, padR = 118, padT = 14, padB = 24;
   svg.setAttribute("viewBox", "0 0 " + W + " " + H);
@@ -422,8 +427,32 @@ function drawChart(st, aName, bName) {
     tip.style.top = Math.max(4, y(p.v) - 62) + "px";
   };
   svg.onmouseleave = function () {
+    if (matchMedia('(max-width:700px)').matches) return;
     tip.hidden = true; cursor.setAttribute("hidden", "");
   };
+  if (matchMedia('(max-width:700px)').matches) {
+    var inspector = document.createElement('section');
+    inspector.id = 'mobile-chart-inspector';
+    inspector.setAttribute('aria-label','Inspect chart matches');
+    inspector.innerHTML = '<label>Inspect a match<select id="mobile-chart-match"></select></label><div class="mobile-chart-buttons"><button type="button" class="ghostbtn">Previous match</button><button type="button" class="ghostbtn">Next match</button></div><div class="mobile-chart-readout" aria-live="polite"></div>';
+    box.after(inspector);
+    var picker = inspector.querySelector('select'), buttons = inspector.querySelectorAll('button'), readout = inspector.querySelector('.mobile-chart-readout');
+    pts.forEach(function(p,i){var r=ROWS[p.s.i],option=document.createElement('option');option.value=i;option.textContent=fmtDate(r[F.date])+' · '+homeName(r)+' v '+awayName(r);picker.appendChild(option);});
+    function inspect(i) {
+      var p=pts[i],r=ROWS[p.s.i];picker.value=String(i);
+      inspector.dataset.match=r[F.match_id];
+      svg.onmousemove({target:svg.querySelector('[data-i="'+i+'"]')});
+      var basis=p.s.restated?'Restated under '+S.era+' scoring':(S.basis==='restated'?'Original score · no complete scoring breakdown':'Score as played');
+      readout.innerHTML=tip.innerHTML+'<p>'+esc(basis)+'</p><a class="ghostbtn" href="index.html#match='+encodeURIComponent(r[F.match_id])+'">Full match details</a>';
+      tip.hidden=true;buttons[0].disabled=i===0;buttons[1].disabled=i===pts.length-1;
+    }
+    picker.onchange=function(){inspect(+picker.value);};
+    buttons[0].onclick=function(){inspect(+picker.value-1);};
+    buttons[1].onclick=function(){inspect(+picker.value+1);};
+    svg.onclick=function(e){var rect=svg.getBoundingClientRect(),px=(e.clientX-rect.left)*W/rect.width,best=0;pts.forEach(function(p,i){if(Math.abs(x(p.t)-px)<Math.abs(x(pts[best].t)-px))best=i;});inspect(best);};
+    var initial=pts.findIndex(function(p){return ROWS[p.s.i][F.match_id]===selectedMatch;});
+    inspect(initial<0?pts.length-1:initial);
+  }
 }
 
 // ------------------------------------------------------------------ render

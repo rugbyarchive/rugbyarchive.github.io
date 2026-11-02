@@ -80,8 +80,6 @@
       var mo=new MutationObserver(meetingCount);mo.observe($('#meetcount'),{childList:true});undo.push(function(){mo.disconnect();});meetingCount();
       var back=add(rivalry,button('Back to comparison',function(){jump($('.h2h .pickbar'));}));$('#meethead').before(back);
       var hint=add(rivalry,make('p','mobile-table-hint','Open a match for venue, statistics and sources. Home and away follow the listed fixture.'));$('#meethead').before(hint);
-      var chart=$('#chart');if(chart)on(chart,'click',function(e){if(chart.onmousemove)chart.onmousemove(e);});
-      if($('#chart-note'))add($('#chart-note'),make('span','',' Tap a point to inspect its match.'));
     }
     var search=$('.tmoptions #f-find');
     if(search){var row=add($('#app'),make('label','mobile-team-search'));$('.tmoptions').before(row);add(row,make('span','','Find a team'));move(search,row);var optionsTitle=$('.tmoptions > summary'),oldTitle=optionsTitle.textContent;optionsTitle.textContent='Ranking options and export';undo.push(function(){optionsTitle.textContent=oldTitle;});}
