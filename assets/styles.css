@@ -1421,7 +1421,7 @@ html[data-theme='light'] .site-brand a{background:#0b1117;border-radius:6px;widt
   src:url('fonts/pixelify-sans.ttf') format('truetype');
   font-weight:400 700;
   font-style:normal;
-  font-display:swap;
+  font-display:optional;
 }
 :root{--display:'Pixelify Sans',var(--mono)}
 button,input,select,textarea{font-family:var(--mono)}
@@ -1518,6 +1518,12 @@ input,textarea{font-family:var(--mono)!important}
 
 /* One layered badge: the ball tucks behind the N, with lettering in front. */
 .topbar .brand{grid-template-columns:242px minmax(0,1fr)}
+/* Reserve the asynchronously populated archive-date slot. Otherwise its
+   arrival steals width from the navigation and wraps links after first paint. */
+.topbar .buildinfo{min-height:1.45em}
+@media(min-width:1101px){
+ .topbar{display:grid;grid-template-columns:minmax(0,1fr) 47ch}
+}
 .site-brand a{gap:0;isolation:isolate}
 .brand-ball{position:relative;z-index:0;width:64px;height:68px;flex-basis:64px;margin-right:-22px;align-self:center}
 .site-brand .brand-logo{position:relative;z-index:1}

@@ -1889,7 +1889,10 @@ function init() {
       var openNow = document.body.classList.toggle("stats-open");
       stog.setAttribute("aria-expanded", String(openNow));
       stog.textContent = openNow ? "Hide stats" : "Stats";
-      paint();
+      /* This control exists only on phones, where the table keeps its 66vh
+         viewport. Opening stats moves the table but does not resize its rows
+         or viewport. Rebuilding those rows here forced synchronous layout
+         of the newly opened panel and delayed the button's next paint. */
     });
   }
 
