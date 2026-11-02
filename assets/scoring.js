@@ -243,7 +243,17 @@ function tile(label, big, sub) {
 }
 
 function paint() {
+  /* Match the phone card height without changing desktop's 30px table.
+     Preserve the first visible fixture when switching full/compact views. */
+  var nextHeight = matchMedia('(max-width:700px)').matches &&
+    !document.getElementById('app').classList.contains('mobile-full-table') ? 100 : 30;
   var wrap = document.getElementById("tablewrap");
+  if (ROW_H !== nextHeight) {
+    var position = wrap.scrollTop / ROW_H;
+    ROW_H = nextHeight;
+    document.getElementById('tablespacer').style.height = (view.length * ROW_H) + 'px';
+    wrap.scrollTop = position * ROW_H;
+  }
   var body = document.getElementById("tablebody");
   var first = Math.max(0, Math.floor(wrap.scrollTop / ROW_H) - 6);
   var last = Math.min(view.length,
