@@ -1225,6 +1225,9 @@ function renderTable() {
 }
 
 function toggleRow(i, force) {
+  if (force === undefined && window.__MOBILE_MATCH_OPEN) {
+    window.__MOBILE_MATCH_OPEN(i); return;
+  }
   var want = force === undefined ? !open[i] : !!force;
   if (want) open[i] = true; else delete open[i];
   renderTable();
@@ -1290,6 +1293,10 @@ function gotoMatch(excelRow) {
   if (i < 0) return false;
   var k = view.indexOf(i);
   if (k < 0) return false;           // filtered out of the current view
+  if (window.__MOBILE_MATCH_OPEN) {
+    wrap.scrollTop = Math.max(0, yOf(k) - ROW_H * 2);
+    paint(); window.__MOBILE_MATCH_OPEN(i); return true;
+  }
   open[i] = true;
   renderTable();
   wrap.scrollTop = Math.max(0, yOf(k) - ROW_H * 2);
@@ -2230,6 +2237,17 @@ function exportCSV() {
 
 // expose a tiny hook so the build can be tested from outside the page
 window.__ARCHIVE = {
+  matchDetail: function (i) {
+    if (!Number.isInteger(i) || i < 0 || i >= N) return null;
+    var r = ROWS[i];
+    return {html:drawerHTML(i),id:r[F.match_id],date:fmtDate(r[F.date]),
+      title:homeName(r)+' '+r[F.home_score]+' – '+r[F.away_score]+' '+awayName(r)};
+  },
+  linkedRow: function () { return rowForExcel(matchFromHash()); },
+  collapseRow: function (i) { toggleRow(i, false); },
+  copyMatchLink: function (button) {
+    copyText(new URL(button.getAttribute('data-link'),location.href).href,button);
+  },
   setFilters: function (patch) {
     Object.keys(patch).forEach(function (k) { S[k] = patch[k]; });
     syncControls(); refresh();

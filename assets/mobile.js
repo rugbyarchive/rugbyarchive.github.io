@@ -40,6 +40,36 @@
       var analysis=$('#analysis');if(analysis)add(analysis,button('Back to matches',function(){if(document.body.classList.contains('stats-open'))$('#statstoggle').click();jump($('.results > .tablebar'));}));
       var actions=$('.results > .tablebar .tablebar-right');
       if(actions)group(actions,[$('#expandall'),$('#export')].filter(Boolean),'More actions');
+      /* Render the same sourced details independently of the virtual list.
+         Opening a phone panel never inserts/measures a drawer in that list. */
+      var panel=add(document.body,make('dialog','mobile-match'));
+      panel.setAttribute('aria-labelledby','mobile-match-title');
+      var panelHead=add(panel,make('header','mobile-match-head'));
+      var panelTitle=add(panelHead,make('h2'));panelTitle.id='mobile-match-title';
+      var panelDate=add(panelHead,make('p','mobile-match-date'));
+      var content=add(panel,make('div','mobile-match-content'));content.tabIndex=0;content.setAttribute('aria-label','Match details and sources');
+      var activeRow=null, position=null;
+      function closeMatch(clearLink){
+        if(!panel.open)return;
+        panel.close();document.body.classList.remove('mobile-modal-open');
+        if(clearLink&&activeRow!==null){var linked=window.__ARCHIVE.linkedRow();if(linked===activeRow){var params=new URLSearchParams(location.hash.slice(1));params.delete('match');history.replaceState(null,'',location.pathname+location.search+(params.size?'#'+params.toString():''));}}
+        if(position){$('#tablewrap').scrollTop=position.table;window.scrollTo(position.x,position.y);var trigger=$('#tablebody [data-exp="'+activeRow+'"]');if(trigger)trigger.focus({preventScroll:true});}
+        content.replaceChildren();activeRow=null;position=null;
+      }
+      var back=add(panelHead,button('Back to matches',function(){closeMatch(true);}));
+      on(panel,'cancel',function(e){e.preventDefault();closeMatch(true);});
+      on(content,'click',function(e){var cp=e.target.closest('.copylink');if(cp)window.__ARCHIVE.copyMatchLink(cp);});
+      window.__MOBILE_MATCH_OPEN=function(i){
+        var detail=window.__ARCHIVE.matchDetail(i);if(!detail)return;
+        if(!panel.open)position={table:$('#tablewrap').scrollTop,x:scrollX,y:scrollY};
+        activeRow=i;panelTitle.textContent=detail.title;panelDate.textContent=detail.date;
+        content.innerHTML=detail.html;content.querySelector('.drawer').removeAttribute('id');content.scrollTop=0;
+        document.body.classList.add('mobile-modal-open');if(!panel.open)panel.showModal();back.focus({preventScroll:true});
+      };
+      on(window,'hashchange',function(){if(window.__ARCHIVE.linkedRow()<0)closeMatch(false);});
+      undo.push(function(){closeMatch(false);delete window.__MOBILE_MATCH_OPEN;});
+      var linkedRow=window.__ARCHIVE.linkedRow();
+      if(linkedRow>=0){window.__ARCHIVE.collapseRow(linkedRow);window.__MOBILE_MATCH_OPEN(linkedRow);}
     }
 
     var rivalry=$('#rivalry');
