@@ -114,4 +114,24 @@
  .sc:not(.mobile-full-table) .trow>div:nth-child(3)::before{content:'As played: ';font-size:10px;color:var(--muted)}
  .sc:not(.mobile-full-table) .trow>div:nth-child(5)::before{content:'Restated: ';font-size:10px;color:var(--muted)}
  .sc:not(.mobile-full-table) .trow>div:nth-child(n+6){display:none}
+ /* Reading copy uses the clear mono face; display headings keep their pixel face. */
+ .topbar .buildinfo,.hero-sub,.filterbar .fcount,.note,.rulenote,.chartnote,
+ .charthead p,.mobile-filter-note,.mobile-table-hint,.mobile-opponent p,
+ .mobile-match-date,.sc .intro .mobile-group .warn,#step-status{
+   font-family:var(--mono);font-size:14px;line-height:1.55;overflow-wrap:anywhere;
+ }
+ .note{color:var(--muted)}
+ .mobile-opponent dt,#opphead label,.mobile-match-content .drawer dt,
+ .mobile-match-content .drawer h4{font-family:var(--mono);font-size:13px;line-height:1.4}
+ .mobile-match-content .drawer{font-size:14px;line-height:1.5}
+ .ghostbtn,.chips button,.segbtns button,.themeswitch button,
+ .mobile-group>summary,.tmextras>summary,.tmoptions>summary,.tmcontext>summary{
+   font-family:var(--mono)!important;font-size:14px;line-height:1.4;
+ }
+ input:not([type=range]):not([type=checkbox]):not([type=radio]),select,#opphead select{
+   font-family:var(--mono)!important;font-size:16px!important;
+ }
+ button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible,select:focus-visible{
+   outline:2px solid var(--t-accent);outline-offset:3px;
+ }
 }
