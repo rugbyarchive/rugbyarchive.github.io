@@ -125,19 +125,25 @@ const { pathToFileURL } = require('node:url');
   assert(m.url().includes('team=France'));
   assert(!m.url().includes('match='));
   assert.equal(await m.locator('#f-team').inputValue(), 'France');
-  const alias = await m.evaluate(
-    (id) =>
-      Object.keys(RUGBY_MATCH_ID_ALIASES).find(
-        (k) => RUGBY_MATCH_ID_ALIASES[k] === id,
-      ),
-    id,
+  const legacy = { window: {} };
+  require('node:vm').runInNewContext(
+    require('node:fs').readFileSync(
+      path.resolve(__dirname, '../data/legacy-match-links.js'),
+      'utf8',
+    ),
+    legacy,
+  );
+  const alias = Object.keys(legacy.window.RUGBY_MATCH_ID_ALIASES).find(
+    (k) => legacy.window.RUGBY_MATCH_ID_ALIASES[k] === id,
   );
   if (alias) {
     await hash(m, 'match=' + encodeURIComponent(alias));
+    await m.locator('.mobile-match').waitFor({ state: 'visible' });
     assert(await m.locator('.mobile-match').isVisible());
     await m.locator('.mobile-match-head button').click();
   }
   await hash(m, 'match=missing-record');
+  await m.locator('.fchip.warn').waitFor({ state: 'visible' });
   assert(await m.locator('.fchip.warn').isVisible());
   assert.deepEqual(m.errors, []);
   await m.close();

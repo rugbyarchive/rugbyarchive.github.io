@@ -1312,12 +1312,54 @@ function gotoMatch(excelRow) {
    the first version of this only ran at init - so the very gesture the
    feature exists for (someone sends you a link, you paste it) was the one
    that silently did nothing. */
+var linkedRequest = 0, legacyLinkLoad = null;
+function loadLegacyLinks() {
+  if (window.RUGBY_LEGACY_MATCH_IDS && window.RUGBY_MATCH_ID_ALIASES) return Promise.resolve();
+  if (legacyLinkLoad) return legacyLinkLoad;
+  legacyLinkLoad = new Promise(function (resolve, reject) {
+    var script = document.createElement('script');
+    var source = document.getElementById('legacy-match-data');
+    var timer = setTimeout(function () { finish(false); }, 15000);
+    function finish(ok) {
+      clearTimeout(timer); script.onload = script.onerror = null;
+      if (ok && window.RUGBY_LEGACY_MATCH_IDS && window.RUGBY_MATCH_ID_ALIASES) resolve();
+      else { script.remove(); legacyLinkLoad = null; reject(new Error('Older match links could not load')); }
+    }
+    script.onload = function () { finish(true); };
+    script.onerror = function () { finish(false); };
+    script.src = source.dataset.src;
+    document.head.appendChild(script);
+  });
+  return legacyLinkLoad;
+}
 function openLinkedMatch(raw) {
+  var request = ++linkedRequest;
   var wanted = matchFromHash(raw);
   var warn = document.querySelector(".fchip.warn");
   if (warn) warn.remove();
   if (wanted === null) return;
-  if (!gotoMatch(wanted)) notFoundMatch(wanted);
+  if (rowForExcel(wanted) >= 0) {
+    if (!gotoMatch(wanted)) notFoundMatch(wanted);
+    return;
+  }
+  if (window.RUGBY_LEGACY_MATCH_IDS && window.RUGBY_MATCH_ID_ALIASES) {
+    notFoundMatch(wanted); return;
+  }
+  loadLegacyLinks().then(function () {
+    if (request !== linkedRequest || matchFromHash() !== wanted) return;
+    if (!gotoMatch(wanted)) notFoundMatch(wanted);
+  }, function () {
+    if (request !== linkedRequest || matchFromHash() !== wanted) return;
+    var bar = document.getElementById('chipbar'), set = document.getElementById('chipset');
+    if (!bar || !set) return;
+    bar.hidden = false;
+    var warning = document.createElement('span'); warning.className = 'fchip warn';
+    warning.setAttribute('role', 'status');
+    warning.textContent = 'The older match-link lookup could not load. ';
+    var retry = document.createElement('button'); retry.type = 'button'; retry.textContent = 'Try again';
+    retry.addEventListener('click', function () { openLinkedMatch(); });
+    warning.appendChild(retry); set.appendChild(warning);
+  });
 }
 
 function notFoundMatch(excelRow) {

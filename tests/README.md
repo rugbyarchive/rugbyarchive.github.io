@@ -18,4 +18,4 @@ Supporting-page tests compare every generated match-index entry with the archive
 verify counts with JavaScript disabled, and check current/legacy/numeric match links
 without submitting reports. Safe-HTML tests cover escaping and source URL protocols.
 
-The runner starts a temporary local HTTP server when SITE_URL is unset, so CSP, font and origin behaviour match deployment. Ten maintained suites include rankings links, mobile meetings/opponents/charts, static discovery and a mocked security-policy check. Lint and formatting checks are required by tools/check-site.py. No test sends an actual correction report.
+The runner starts a temporary local HTTP server when SITE_URL is unset, so CSP, font and origin behaviour match deployment. Eleven maintained suites include on-demand archive aliases, rankings links, mobile meetings/opponents/charts, static discovery and a mocked security-policy check. Lint and formatting checks are required by tools/check-site.py. No test sends an actual correction report.

@@ -43,3 +43,18 @@ historical calculations. Further splitting of rankings must preserve reconstruct
 official snapshots and stepping; do not add asynchronous state paths just to reduce
 an uncompressed-size headline. Keep this as an assessed follow-up until measured
 network/CPU evidence justifies it. Existing legacy archive links remain supported.
+
+## Archive legacy-link loading
+
+Ordinary visits and current Match IDs do not request the alias table. Unresolved
+or numeric legacy links load its versioned URL on demand. A failed lookup download
+offers a retry; late responses cannot override a newer link. Known records hidden
+by filters do not trigger this download. The maintained archive-loading test covers
+ordinary/current/legacy/numeric links, failures, retry and stale responses.
+
+Measured on 2 November: the omitted table is 362,396 bytes of JavaScript, with a
+77,125-byte gzip estimate. These are payload measurements, not claimed page-speed
+or Core Web Vitals gains. The rankings payload is 3,341,426 bytes (247,924 gzip);
+its official-snapshot field is 2,887,044 JSON bytes (82,865 gzip). On-demand official
+snapshots are the next loading target; current archive calculations must remain
+usable on failure, and source-switch races and old links need regression coverage.
