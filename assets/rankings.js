@@ -337,6 +337,7 @@ function refresh() {
   });
   document.getElementById("datebox").value = dayToISO(S.day);
   document.getElementById("slider").value = S.day;
+  document.getElementById("slider").setAttribute("aria-valuetext",pretty(S.day));
 
   var set = SETS[key];
   document.getElementById("rulenote").textContent =
@@ -482,7 +483,8 @@ function syncTimeline(index){
   if(calendarUnit())setText('step-status','Calendar '+S.unit.replace('calendar-','')+' steps · latest ratings available by this date'+(official?' · published ratings may stay unchanged':'')+' · '+(5000/+S.speed/1000)+' seconds per step');
   document.getElementById('previous').disabled=calendarUnit()?S.day<=bounds()[0]:index<=0;
   document.getElementById('next').disabled=calendarUnit()?S.day>=bounds()[1]:index>=days.length-1;
-  document.getElementById('play').disabled=!days.length;
+  document.getElementById('play').disabled=!days.length || reducedMotion.matches;
+  document.getElementById('motion-note').hidden=!reducedMotion.matches;
   document.querySelector('.asat-label').textContent=official?'World Rugby snapshot available by':'Archive rankings after counted matches on';
   setText('buildinfo',official?'Official snapshots · October 2003 to '+shortDate(bounds()[1]):'Archive reconstruction · 1871 to '+shortDate(DAY_LAST));
 }
@@ -513,7 +515,7 @@ function refreshOfficial(){
   setText('recent-label','Archive matches in this update window');
   document.getElementById('k-recent').innerHTML=rec.map(function(m){return '<li><span>'+shortDate(m[0])+'</span> '+esc(nameAt(m[1],m[0]))+' <b>'+m[3]+'–'+m[4]+'</b> '+esc(nameAt(m[2],m[0]))+'</li>';}).join('')+
     '<li class="dnote">Archive context, not verified attribution of World Rugby’s exchange. Other matches or corrections may contribute.</li>';
-  setText('rowcount',rows.length);setText('asat-date',pretty(S.day));document.getElementById('datebox').value=dayToISO(S.day);document.getElementById('slider').value=S.day;
+  setText('rowcount',rows.length);setText('asat-date',pretty(S.day));document.getElementById('datebox').value=dayToISO(S.day);document.getElementById('slider').value=S.day;document.getElementById('slider').setAttribute('aria-valuetext',pretty(S.day));
   setText('rulenote','World Rugby’s actual positions and ratings. Latest available snapshot: '+(now.snapshot===null?'none':pretty(now.snapshot))+'. '+(selectedMilestone&&selectedMilestone.target===S.day?'Update Δ compares with the saved match-date table for the selected milestone.':'Update Δ compares the latest changed snapshot with its predecessor.')+' No intermediate match ratings are invented.'+((D.official.missing_dates||[]).length?' Weekly backfill is incomplete; the timeline uses saved snapshots.':'')+(now.snapshot!==null&&S.day-now.snapshot>7?' Warning: this snapshot is more than a week older than your selected date.':''));
   syncTimeline(selectedIndex());drawHead();spacer.style.height=rows.length*ROW_H+'px';emptyEl.hidden=!!rows.length;paint();setText('perf','');
 }
@@ -693,13 +695,16 @@ function step(dir) {
 
 // -------------------------------------------------------------------- play
 var timer = null;
+var reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+reducedMotion.addEventListener("change", function () { if (reducedMotion.matches) stop(); refresh(); });
 S.speed = "1";
 function toggle() { if (timer) stop(); else start(); }
 function start() {
-  if(!eventDays().length)return;
+  if(reducedMotion.matches || !eventDays().length)return;
   if (atEnd()) {S.cursor=null;S.day=bounds()[0];refresh();}
   document.getElementById("play").textContent = "❚❚ Pause";
   document.getElementById("play").classList.add("on");
+  document.getElementById("play").setAttribute("aria-pressed", "true");
   timer = setInterval(function () {
     if(atEnd()){stop();return;}
     step(1);
@@ -711,6 +716,7 @@ function stop() {
   timer = null;
   document.getElementById("play").textContent = "▶ Play";
   document.getElementById("play").classList.remove("on");
+  document.getElementById("play").setAttribute("aria-pressed", "false");
 }
 
 // --------------------------------------------------------------------- CSV

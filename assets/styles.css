@@ -1534,3 +1534,11 @@ input,textarea{font-family:var(--mono)!important}
 
 /* Downsample the large source cleanly; nearest-neighbour magnifies edge noise. */
 .brand-ball{image-rendering:auto}
+
+/* Keyboard focus remains visible in both themes without changing resting layout. */
+html body :is(a,button,input,select,textarea,summary):focus-visible{
+  outline:2px solid var(--t-accent);outline-offset:2px;
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+}

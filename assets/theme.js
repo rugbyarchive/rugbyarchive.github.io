@@ -30,7 +30,9 @@
     var box = document.getElementById("themeswitch");
     if (!box) return;
     Array.prototype.forEach.call(box.children, function (b) {
-      b.className = b.getAttribute("data-theme") === name ? "on" : "";
+      var selected = b.getAttribute("data-theme") === name;
+      b.className = selected ? "on" : "";
+      b.setAttribute("aria-pressed", String(selected));
     });
   }
 
