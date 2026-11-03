@@ -19,6 +19,7 @@ const path = require('node:path');
       'rankings-links',
       'rankings-loading',
       'csv-export',
+      'contrast',
       'accessibility',
       'supporting-pages',
       'security-policy',

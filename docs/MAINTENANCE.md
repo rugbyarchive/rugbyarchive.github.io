@@ -21,20 +21,24 @@ work; do not mix a wholesale legacy reformat with a functional change.
 ESLint's initial rules target dangerous constructs and basic correctness; expand
 the rules gradually. The declared lint command must pass before publishing.
 
-## Safe workspace migration plan (not executed)
+## Workspace migration — completed 3 November 2026
 
-Do not relocate the active master, research library or checkout in the middle of
-a publication. First inventory scheduled-task paths and scripts, take a verified
-backup, pause writers, copy to a dedicated non-OneDrive directory, reproduce the
-full test/build output, update all scheduler and writer-state paths, then switch
-the active pointer. Keep the original read-only until one complete scheduled
-research/publication cycle passes. Only then archive superseded copies.
+Active website and pipeline repositories now live outside OneDrive. Their local
+`../workspace.json` is the path authority; shared writer-state records the same
+locations. All three scheduled runs retain their cadence and use that authority.
+The shared master and research library retain their existing locations.
 
-Old release folders contain provenance and executable historical receipts. Index
-them by baseline and purpose before archival; never delete merely by age. A new
-pipeline repository must include configuration and tests, not just a copy of the
-engine with broken relative paths. Migration and old-release consolidation remain
-open work; this document is the agreed safe procedure, not a completion claim.
+The site, engine and staged data were copied and hash-compared. Git integrity,
+the relocated browser suite and the pipeline's release/rejection checks passed.
+The original checkout remains a recovery copy with a pre-push block until a full
+scheduled cycle passes. It must not be edited or used as a publication source.
+
+Twenty-nine historical release folders were moved into the evidence archive:
+123,224 files checked before and after, zero files deleted. The local archive
+index maps every old path to its new location and records file hashes. Historical
+builds are evidence, never active templates. The maintained private pipeline has
+its own Git history, configuration guidance and `python manage.py check` entry
+point; workbooks and generated outputs are excluded from that repository.
 
 ## Performance trade-offs
 
@@ -73,6 +77,21 @@ Core Web Vitals improvements. Official snapshot positions and ordering are kept.
 
 Shared modules now own dynamic script loading, CSV quoting/downloads and official
 snapshot lookup/change detection. The four tools retain their own CSV schemas.
-Thirteen maintained suites include exact snapshot comparisons, source-switch
+Fourteen maintained suites include exact snapshot comparisons, source-switch
 races and actual CSV downloads. Larger feature modules can be extracted as those
 features change; a wholesale ES-module conversion is not required for this fix.
+
+## Contrast and device acceptance
+
+The inactive filter's explanation keeps full opacity, theme variables are scoped
+to the document rather than the similarly named toggle button, and light-theme
+metadata, chart labels and result badges meet the measured contrast targets.
+SVG chart labels and non-text indicators have a separate computed-colour check;
+the chart labels were also visually inspected in both themes. These checks do not
+constitute a physical iPhone/Safari or screen-reader test.
+
+Device acceptance still requires: iPhone Safari filter open/close and result jump;
+VoiceOver names, reading order and focus return; match-detail close and browser
+Back; rankings source switch and retry; chart navigation; and enlarged text without
+lost controls. Record device/OS/browser versions and actual results before closing
+that item. The pre-2000 scoring-review queue separately remains with Claude.

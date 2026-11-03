@@ -679,7 +679,7 @@ main.sc{display:block;height:auto;min-height:calc(100vh - 62px)}
    hues, rather than following team identity, which would need 306 and fail
    every contrast and colour-blindness check. Identity is carried by the flag.
    ========================================================================== */
-[data-theme="terminal"]{
+html[data-theme="terminal"]{
   --navy:#0d1117;
   --navy-2:#161b22;
   --ink:#c9d1d9;          /* primary text            */
@@ -1261,7 +1261,8 @@ html.dense .expbtn{font-size:14px}
 
 /* A filter that cannot do anything yet should look like it. The home/away
    control only bites once a team is chosen - see renderAnalysis. */
-.f.seg.disabled{opacity:.55}
+.f.seg.disabled{opacity:1}
+.f.seg.disabled .segbtns{opacity:.55}
 .f.seg.disabled .segbtns button{cursor:not-allowed}
 .f.seg.disabled .segbtns button:hover{background:none}
 
@@ -1544,3 +1545,8 @@ html body :is(a,button,input,select,textarea,summary):focus-visible{
 }
 /* Light-theme helper copy must remain readable on white panels. */
 html[data-theme="light"] :is(#m-span,#chart-note,.tm .lastp){color:var(--muted)}
+/* Helper text remains readable; only inactive controls are dimmed. */
+html[data-theme="light"] :is(.h2h .rk,.sc .bd,.lastmatches li span,.card-label .hint,#side-note,.chartnote){color:var(--muted)}
+html[data-theme="light"] .chartbox .axis{fill:var(--muted)}
+html[data-theme="light"] .tag.rwc{color:#735c19}
+html[data-theme="light"]{--win:#246d4e;--draw:#725917}
