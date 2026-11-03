@@ -58,3 +58,21 @@ or Core Web Vitals gains. The rankings payload is 3,341,426 bytes (247,924 gzip)
 its official-snapshot field is 2,887,044 JSON bytes (82,865 gzip). On-demand official
 snapshots are the next loading target; current archive calculations must remain
 usable on failure, and source-switch races and old links need regression coverage.
+
+## Rankings loading and shared exports — 3 November
+
+The preceding performance follow-up is implemented. Keep `rankings-data.js` as
+the canonical pipeline export. `build-rankings-data.py` generates the core and
+official payloads; the release check requires their recombination to equal the
+canonical object. Only the core loads initially. Selecting World Rugby or opening
+an official deep link loads snapshots, with retry and stale-selection protection.
+
+Core payload: 454,369 bytes, 164,263 gzip estimate, versus 3,341,426 and 247,924
+for the original bundle. These are payload measurements, not measured speed or
+Core Web Vitals improvements. Official snapshot positions and ordering are kept.
+
+Shared modules now own dynamic script loading, CSV quoting/downloads and official
+snapshot lookup/change detection. The four tools retain their own CSV schemas.
+Thirteen maintained suites include exact snapshot comparisons, source-switch
+races and actual CSV downloads. Larger feature modules can be extracted as those
+features change; a wholesale ES-module conversion is not required for this fix.

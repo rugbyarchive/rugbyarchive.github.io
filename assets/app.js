@@ -1312,25 +1312,12 @@ function gotoMatch(excelRow) {
    the first version of this only ran at init - so the very gesture the
    feature exists for (someone sends you a link, you paste it) was the one
    that silently did nothing. */
-var linkedRequest = 0, legacyLinkLoad = null;
+var linkedRequest = 0;
 function loadLegacyLinks() {
   if (window.RUGBY_LEGACY_MATCH_IDS && window.RUGBY_MATCH_ID_ALIASES) return Promise.resolve();
-  if (legacyLinkLoad) return legacyLinkLoad;
-  legacyLinkLoad = new Promise(function (resolve, reject) {
-    var script = document.createElement('script');
-    var source = document.getElementById('legacy-match-data');
-    var timer = setTimeout(function () { finish(false); }, 15000);
-    function finish(ok) {
-      clearTimeout(timer); script.onload = script.onerror = null;
-      if (ok && window.RUGBY_LEGACY_MATCH_IDS && window.RUGBY_MATCH_ID_ALIASES) resolve();
-      else { script.remove(); legacyLinkLoad = null; reject(new Error('Older match links could not load')); }
-    }
-    script.onload = function () { finish(true); };
-    script.onerror = function () { finish(false); };
-    script.src = source.dataset.src;
-    document.head.appendChild(script);
+  return window.RUGBY_LOAD(document.getElementById('legacy-match-data').dataset.src).then(function () {
+    if (!window.RUGBY_LEGACY_MATCH_IDS || !window.RUGBY_MATCH_ID_ALIASES) throw new Error('Older match links could not load');
   });
-  return legacyLinkLoad;
 }
 function openLinkedMatch(raw) {
   var request = ++linkedRequest;
@@ -2235,11 +2222,7 @@ function exportCSV() {
               "Home rating before", "Away rank before", "Away rating before"]
              .concat(bdHead, ["Excel row"]);
   var out = [head.join(",")];
-  function q(v) {
-    if (v === null || v === undefined) return "";
-    var s = String(v);
-    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
-  }
+  var q = window.RUGBY_CSV.quote;
   for (var k = 0; k < view.length; k++) {
     var i = view[k], r = ROWS[i];
     /* 167 dates are typed as text in the workbook and could mean two different
@@ -2270,13 +2253,7 @@ function exportCSV() {
       r[F.away_rating_before] === null ? "" : r[F.away_rating_before]]
       .concat(bd, [r[F.excel_row]]).map(q).join(","));
   }
-  var blob = new Blob(["﻿" + out.join("\r\n")],
-                      { type: "text/csv;charset=utf-8" });
-  var a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "nucks-rugby-archive-filtered.csv";
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+  window.RUGBY_CSV.download(out, "nucks-rugby-archive-filtered.csv");
 }
 
 // expose a tiny hook so the build can be tested from outside the page

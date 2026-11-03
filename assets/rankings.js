@@ -439,17 +439,33 @@ function sortRows() {
 }
 
 // Official snapshots retain their published positions, including tie ordering.
-var WR = (D.official || {}).snapshots || [], WR_EVENTS = [];
-WR.forEach(function(s){
-  if (!WR_EVENTS.length || JSON.stringify(s[1]) !== JSON.stringify(WR_EVENTS[WR_EVENTS.length-1][1])) WR_EVENTS.push(s);
-});
-function officialAt(day) {
-  var out={rating:{},pos:{},order:[],last:{},played:{},counted:0,snapshot:null}, snap=null;
-  for(var i=0;i<WR.length;i++){if(WR[i][0]>day)break;snap=WR[i];}
-  if(!snap)return out;
-  out.snapshot=snap[0];
-  for(var j=0;j<snap[1].length;j+=3){var t=snap[1][j];out.order.push(t);out.pos[t]=snap[1][j+1];out.rating[t]=snap[1][j+2];}
-  return out;
+var WR = [], WR_EVENTS = [], sourceRequest = 0;
+function officialAt(day) { return window.RUGBY_SNAPSHOTS.at(WR, day); }
+function chooseSource(source, link) {
+  var request = ++sourceRequest, status = document.getElementById('official-status');
+  stop(); status.hidden = true;
+  function apply() {
+    if (request !== sourceRequest) return;
+    status.hidden = true;
+    S.source=source;S.unit=source==='world'?'snapshot':'day';S.cursor=null;S.compare='';S.sort='rank';S.dir=1;
+    var day=link && link.day!==null?link.day:S.day;
+    S.day=Math.max(bounds()[0],Math.min(bounds()[1],day));
+    if(link){S.find=link.index>=0?nameAt(link.index,S.day):'';document.getElementById('f-find').value=S.find;}
+    document.querySelectorAll('#f-source button').forEach(function(b){b.classList.toggle('on',b.dataset.v===S.source);b.setAttribute('aria-pressed',String(b.dataset.v===S.source));});
+    sourceControls();refresh();
+  }
+  if(source!=='world'||WR.length){apply();return;}
+  status.textContent='Loading World Rugby snapshots… Archive rankings remain available.';status.hidden=false;
+  window.RUGBY_LOAD(document.getElementById('official-rankings-data').dataset.src).then(function(){
+    var snapshots=(window.RUGBY_OFFICIAL||{}).snapshots;
+    if(!Array.isArray(snapshots)||!snapshots.length)throw new Error('No official snapshots');
+    D.official=window.RUGBY_OFFICIAL;WR=snapshots;WR_EVENTS=window.RUGBY_SNAPSHOTS.changes(WR);apply();
+  }).catch(function(){
+    if(request!==sourceRequest)return;
+    status.textContent='World Rugby snapshots could not load. Archive rankings are still available. ';
+    var retry=document.createElement('button');retry.type='button';retry.className='ghostbtn';retry.textContent='Try again';
+    retry.addEventListener('click',function(){chooseSource(source,link);});status.appendChild(retry);status.hidden=false;
+  });
 }
 function eventDays(){
   if(S.source==='world')return S.unit==='snapshot'?WR_EVENTS.map(function(s){return s[0];}):M.filter(function(m){return m[0]>=isoToDay('2003-10-06');}).map(function(m){return m[0];});
@@ -623,7 +639,7 @@ function init() {
       refresh();
     });
   }
-  seg('f-source','source',function(){S.unit=S.source==='world'?'snapshot':'day';S.compare='';S.sort='rank';S.dir=1;S.day=Math.max(bounds()[0],Math.min(bounds()[1],S.day));sourceControls();});
+  document.getElementById('f-source').addEventListener('click',function(e){var button=e.target.closest('button');if(button)chooseSource(button.dataset.v);});
   seg("f-dormant", "dormant");
   seg("speed", "speed");
 
@@ -676,11 +692,7 @@ function readRankingLink() {
   if(date&&(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Number.isFinite(day)||dayToISO(day)!==date))return false;
   var index=team?TEAMS.indexOf(team):-1;
   if(team&&index<0)return false;
-  S.source=source;S.unit=source==='world'?'snapshot':'day';S.cursor=null;
-  S.day=Math.max(bounds()[0],Math.min(bounds()[1],day===null?S.day:day));
-  S.find=index>=0?nameAt(index,S.day):'';
-  document.getElementById('f-find').value=S.find;
-  document.querySelectorAll('#f-source button').forEach(function(b){b.classList.toggle('on',b.dataset.v===S.source);b.setAttribute('aria-pressed',String(b.dataset.v===S.source));});
+  chooseSource(source,{day:day,index:index});
   return true;
 }
 
@@ -735,11 +747,7 @@ function stop() {
 function exportCSV() {
   var key = setKey(S.mode, S.lions);
   var columns = cols(), head = columns.map(function(c){return c.label;});
-  function q(v) {
-    if (v === null || v === undefined) return "";
-    var s = String(v);
-    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
-  }
+  var q = window.RUGBY_CSV.quote;
   var out = ["As at," + q(dayToISO(S.day)),
              "Source," + (S.source === 'world' ? 'World Rugby published snapshots' : 'Archive reconstruction'),
              "Rule set," + q(S.source === 'world' ? 'World Rugby published' : SETS[key].label),
@@ -751,13 +759,7 @@ function exportCSV() {
     var line = columns.map(function(c){return c.key==='team'?x.name:c.key==='last'?dayToISO(x.last):x[c.key];});
     out.push(line.map(q).join(","));
   });
-  var blob = new Blob(["﻿" + out.join("\r\n")],
-                      { type: "text/csv;charset=utf-8" });
-  var a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "rankings-" + S.source + '-' + dayToISO(S.day) + "-" + key + ".csv";
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+  window.RUGBY_CSV.download(out, "rankings-" + S.source + '-' + dayToISO(S.day) + "-" + key + ".csv");
 }
 
 // test hook, same idea as the Super Filter's

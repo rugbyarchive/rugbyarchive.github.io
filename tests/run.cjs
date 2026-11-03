@@ -17,6 +17,8 @@ const path = require('node:path');
       'share-links',
       'archive-loading',
       'rankings-links',
+      'rankings-loading',
+      'csv-export',
       'accessibility',
       'supporting-pages',
       'security-policy',

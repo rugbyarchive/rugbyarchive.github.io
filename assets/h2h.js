@@ -970,11 +970,7 @@ function init() {
 }
 
 function exportCSV() {
-  function q(v) {
-    if (v === null || v === undefined) return "";
-    var s = String(v);
-    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
-  }
+  var q = window.RUGBY_CSV.quote;
   var out = [];
   if(S.mode==="compare"&&S.a&&S.b){
     out.push(["Overall records against all opponents",S.testsOnly?"Full internationals":"All recorded fixtures","Scores as played"].map(q).join(","));
@@ -1011,14 +1007,8 @@ function exportCSV() {
         x.last].map(q).join(","));
     });
   }
-  var blob = new Blob(["﻿" + out.join("\r\n")],
-                      { type: "text/csv;charset=utf-8" });
-  var a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "head-to-head" + (S.a ? "-" + S.a : "") +
-               (S.b ? "-v-" + S.b : "") + ".csv";
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+  window.RUGBY_CSV.download(out, "head-to-head" + (S.a ? "-" + S.a : "") +
+               (S.b ? "-v-" + S.b : "") + ".csv");
 }
 
 window.__H2H = {

@@ -415,11 +415,7 @@ function init() {
 }
 
 function exportCSV() {
-  function q(v) {
-    if (v === null || v === undefined) return "";
-    var s = String(v);
-    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
-  }
+  var q = window.RUGBY_CSV.quote;
   var tv = valuesFor(S.target);
   var out = [
     ["Restated under", eraLabel(S.target)].map(q).join(","),
@@ -445,13 +441,7 @@ function exportCSV() {
       .concat([d.eh, d.ea, d.reconciles ? "yes" : "no", d.r[F.excel_row]])
       .map(q).join(","));
   });
-  var blob = new Blob(["﻿" + out.join("\r\n")],
-                      { type: "text/csv;charset=utf-8" });
-  var a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "scores-restated-" + S.target + ".csv";
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+  window.RUGBY_CSV.download(out, "scores-restated-" + S.target + ".csv");
 }
 
 window.__SC = {

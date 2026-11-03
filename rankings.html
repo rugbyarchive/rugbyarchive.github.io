@@ -59,6 +59,7 @@
       <button type="button" data-v="archive" class="on">Archive reconstruction · since 1871</button>
       <button type="button" data-v="world">World Rugby · since October 2003</button>
     </div>
+    <p id="official-status" role="status" hidden></p>
     <div class="timebar-top">
       <div class="asat">
         <span class="asat-label">World rankings as at the end of</span>
@@ -168,8 +169,12 @@
 
 </main>
 
-<script src="data/rankings-data.js?v=476cdf7bbdd25581" defer></script>
-<script src="assets/rankings.js?v=78892fa8a1408516" defer></script>
+<script src="data/rankings-core.js?v=55bad4bc287c0137" defer></script>
+<script src="assets/data-loader.js?v=e67c5c96fb995973" defer></script>
+<script id="official-rankings-data" type="application/json" data-src="data/rankings-official.js?v=a8ef22714ffb6d13"></script>
+<script src="assets/ranking-snapshots.js?v=48828e3b95e41b7b" defer></script>
+<script src="assets/csv-export.js?v=eab27fde6161de8a" defer></script>
+<script src="assets/rankings.js?v=f4449f0e77d056c4" defer></script>
 <script src="assets/analytics.js?v=a8221e265d10dc6f" defer></script>
 <script src="assets/mobile.js?v=e94d9be2a5682242" defer></script>
 <script src="assets/recovery.js?v=c9f55a84d2cc71f1" defer></script>

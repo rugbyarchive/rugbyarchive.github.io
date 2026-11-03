@@ -6,7 +6,7 @@
   function recover(message){
     loading.textContent=message;var back=document.createElement('a');back.href='index.html';back.className='ghostbtn';back.textContent='Find a match in the archive';loading.appendChild(document.createElement('br'));loading.appendChild(back);
   }
-  function load(url){return new Promise(function(resolve,reject){var script=document.createElement('script');script.src=url;script.onload=resolve;script.onerror=reject;document.head.appendChild(script);});}
+  var load = window.RUGBY_LOAD;
   function bucket(key){var h=0;for(var i=0;i<key.length;i++)h=(Math.imul(h,31)+key.charCodeAt(i))>>>0;return h%64;}
   async function find(key){window.RUGBY_REPORT_ROWS=null;await load(data.report_shards[bucket(key)]);return window.RUGBY_REPORT_ROWS && Object.prototype.hasOwnProperty.call(window.RUGBY_REPORT_ROWS,key)?window.RUGBY_REPORT_ROWS[key]:null;}
   if(!id){recover('Open a match in the archive and choose “Report an error” to identify the fixture.');return;}
