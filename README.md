@@ -2,7 +2,7 @@
 
 A sourced, evolving archive of men's international rugby and selected touring fixtures, presented as a public history explorer and scoring comparison tool. Coverage is incomplete; published source and uncertainty notes describe known gaps.
 
-**11,283 matches · 616 teams · latest recorded match 2026-10-31**
+**11,285 matches · 616 teams · latest recorded match 2026-10-31**
 
 ## The site
 
