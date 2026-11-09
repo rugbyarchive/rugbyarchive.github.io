@@ -87,12 +87,19 @@ const { chromium } = require('playwright'),
     assert((await p.locator('.mobile-meeting').count()) > 0);
     await p.evaluate(() => __H2H.set({ a: 'France', b: '', find: '' }));
     await p.setViewportSize({ width: 1440, height: 1000 });
+    await p.waitForFunction(
+      () => document.querySelectorAll('.mobile-opponent').length === 0,
+    );
     assert.equal(await p.locator('.mobile-opponent').count(), 0);
     assert.equal(await p.locator('#opphead [data-opp-sort]').count(), 10);
     const desktopRows = await p.locator('#oppbody .trow').count();
     assert.equal(desktopRows, expected.length);
     await p.locator('[data-opp-sort="0"]').click();
     await p.setViewportSize({ width, height: 844 });
+    await p.waitForFunction(
+      (count) => document.querySelectorAll('.mobile-opponent').length === count,
+      desktopRows,
+    );
     assert.equal(await p.locator('.mobile-opponent').count(), desktopRows);
     assert.equal(await p.locator('#mobile-opp-sort').inputValue(), '0');
     assert.deepStrictEqual(errors, []);

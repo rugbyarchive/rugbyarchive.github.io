@@ -116,7 +116,7 @@ const { pathToFileURL } = require('node:url');
           'true',
         );
         await p.emulateMedia({ reducedMotion: 'reduce' });
-        await p.waitForTimeout(100);
+        await p.waitForFunction(() => document.querySelector('#play').disabled);
         assert(await p.locator('#play').isDisabled());
         assert.equal(
           await p.locator('#play').getAttribute('aria-pressed'),

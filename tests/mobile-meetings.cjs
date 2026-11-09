@@ -59,6 +59,10 @@ const { chromium } = require('playwright'),
       );
     }
     await check();
+    const firstMatchHref = await p
+      .locator('.mobile-meeting a')
+      .first()
+      .getAttribute('href');
     await p.locator('#meetwrap').evaluate((e) => (e.scrollTop = 50 * 208));
     await p.waitForTimeout(80);
     await check();
@@ -68,6 +72,9 @@ const { chromium } = require('playwright'),
     await p.waitForTimeout(80);
     await check();
     await p.setViewportSize({ width: 1440, height: 1000 });
+    await p.waitForFunction(
+      () => document.querySelectorAll('.mobile-meeting').length === 0,
+    );
     assert.equal(await p.locator('.mobile-meeting').count(), 0);
     assert((await p.locator('#meetbody .trow').count()) > 0);
     assert.equal(
@@ -78,10 +85,18 @@ const { chromium } = require('playwright'),
       30,
     );
     await p.setViewportSize({ width, height: 844 });
+    await p.waitForFunction(
+      () => document.querySelectorAll('.mobile-meeting').length > 0,
+    );
     await check();
     await p.locator('#meetwrap').evaluate((e) => (e.scrollTop = 0));
-    await p.waitForTimeout(80);
-    const link = p.locator('.mobile-meeting a').first();
+    await p.waitForFunction(
+      (href) =>
+        document.querySelector('.mobile-meeting a')?.getAttribute('href') ===
+        href,
+      firstMatchHref,
+    );
+    const link = p.locator(`.mobile-meeting a[href="${firstMatchHref}"]`);
     const id = await link.getAttribute('href');
     await link.click();
     await p.waitForFunction(
