@@ -4,8 +4,8 @@
     "lastmod": "2026-11-09"
   },
   "about.html": {
-    "sha256": "e0d7418d75d57077a218160a44da20c81e0341f1ee9182d21d65a3c6acea4402",
-    "lastmod": "2026-11-09"
+    "sha256": "e5ed93796f78d6ab7df83b6fffc488c7e5c3f597cddc10d211c7dfcfac3f0e44",
+    "lastmod": "2026-11-10"
   },
   "head-to-head.html": {
     "sha256": "bf64660fff5df00ccd7c8bdf5b4fe47e2e5049621e44dce892e8b26b31ab60b9",
@@ -20,31 +20,31 @@
     "lastmod": "2026-11-03"
   },
   "discover.html": {
-    "sha256": "a210fd0e2b06c48473ffa27fbb513517973bea1744562553f294938f39f06e27",
-    "lastmod": "2026-11-09"
+    "sha256": "d88bec68dea362e0cbc354875a820b38c6c16a025e94baa64ce1aee15bec51a6",
+    "lastmod": "2026-11-10"
   },
   "team/fiji.html": {
-    "sha256": "c613fb741c1950410b13df5afb945abdfd1f1f870a5142ea1034d940dc734dd1",
-    "lastmod": "2026-11-09"
+    "sha256": "18b94d42c9f1b3efacf8e151bd6e9847e0a9064cd8566e1446bc28db12ed49b6",
+    "lastmod": "2026-11-10"
   },
   "team/japan.html": {
-    "sha256": "5513bd2b27a48b52bb68c9237bf5a8931b688f79105ab3e99646b269bcfe580a",
-    "lastmod": "2026-11-09"
+    "sha256": "65421a8b7491c9f877d673321a13a091a8d83b1d35e44fe630945f6ef1a455dd",
+    "lastmod": "2026-11-10"
   },
   "team/south-africa.html": {
-    "sha256": "8f0f1ce2d763a4c055e5dcad285644054fd3b8641f88a6d3329abb116b0a7f5a",
-    "lastmod": "2026-11-09"
+    "sha256": "d7e4d9f3d4e959bce1bb65f702d7a70dfdf734fb90b8f6b46f0754b7377b39d7",
+    "lastmod": "2026-11-10"
   },
   "rivalry/japan-fiji.html": {
-    "sha256": "1edc741f232e0512fc4712c68599f197315492b0cad7f1de3e32dfabd1b89acd",
-    "lastmod": "2026-11-02"
+    "sha256": "f4f0224cdfa01e68e8ecac138735bf81365a6c7971c4d054d4a308ba46002448",
+    "lastmod": "2026-11-10"
   },
   "rivalry/france-new-zealand.html": {
-    "sha256": "0ff078484969026ec341f31d127b1aed1e38a023654bc1342bd52e238a68374c",
-    "lastmod": "2026-11-02"
+    "sha256": "a5e435b453053346f7010144f7980abca2e2715a5adba5da3efaccaf2376a185",
+    "lastmod": "2026-11-10"
   },
   "rivalry/australia-south-africa.html": {
-    "sha256": "e582f99cef04b3d93d584e249a70fcb68d53786d9b3a4066f9614e4635557534",
-    "lastmod": "2026-11-02"
+    "sha256": "898852531a6397110ca4bf4fe703b2e7137768d435a22985991ec425772aae9a",
+    "lastmod": "2026-11-10"
   }
 }
