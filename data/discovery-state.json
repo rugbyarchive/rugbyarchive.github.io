@@ -1,10 +1,10 @@
 {
   "index.html": {
-    "sha256": "40c20d70b237f9206c5deb3e51ca06893fef01d85b309c0529550405ec2404b9",
-    "lastmod": "2026-11-09"
+    "sha256": "11194ffbb79bc4e7672924972c5722dc7aed239cedba5360bb76bcf0c8a4044a",
+    "lastmod": "2026-11-16"
   },
   "about.html": {
-    "sha256": "973889d0a3b137aef1c914eb3f5cc0bc50dd3a2742dc587ca5898031e56b1830",
+    "sha256": "2f5ff85f5b96b69e9eb5d7180e9822b7ae6d344817d6290ac9256bab0c5d4d0b",
     "lastmod": "2026-11-16"
   },
   "head-to-head.html": {
@@ -20,20 +20,20 @@
     "lastmod": "2026-11-03"
   },
   "discover.html": {
-    "sha256": "d88bec68dea362e0cbc354875a820b38c6c16a025e94baa64ce1aee15bec51a6",
-    "lastmod": "2026-11-10"
+    "sha256": "a35fa3f5a9fc9457eabe2ec255a49f7250284a070930a9731e91d36357d19b51",
+    "lastmod": "2026-11-16"
   },
   "team/fiji.html": {
-    "sha256": "18b94d42c9f1b3efacf8e151bd6e9847e0a9064cd8566e1446bc28db12ed49b6",
-    "lastmod": "2026-11-10"
+    "sha256": "b11b4c7f7ba67596a95e91aa94baf88190c40990267c6c4d4120e5a29706b887",
+    "lastmod": "2026-11-16"
   },
   "team/japan.html": {
-    "sha256": "65421a8b7491c9f877d673321a13a091a8d83b1d35e44fe630945f6ef1a455dd",
-    "lastmod": "2026-11-10"
+    "sha256": "a271682ecbb2657340a2dc2ecc7fcc7821674a797000dfa0933a2a00954942d6",
+    "lastmod": "2026-11-16"
   },
   "team/south-africa.html": {
-    "sha256": "d7e4d9f3d4e959bce1bb65f702d7a70dfdf734fb90b8f6b46f0754b7377b39d7",
-    "lastmod": "2026-11-10"
+    "sha256": "2e72860ac8310ac484464d059d74822895bffbc6622a6aaac7b2b6dedbc9104d",
+    "lastmod": "2026-11-16"
   },
   "rivalry/japan-fiji.html": {
     "sha256": "f4f0224cdfa01e68e8ecac138735bf81365a6c7971c4d054d4a308ba46002448",
